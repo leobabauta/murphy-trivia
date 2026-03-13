@@ -1190,6 +1190,7 @@ function presenterLogin() {
     return;
   }
   isPresenter = true;
+  localStorage.setItem('gt_isPresenter', 'true');
   enterLobby();
 }
 
@@ -2058,6 +2059,12 @@ function advanceGrandmaPhoto() {
 // BOOT
 // =====================================================
 initFirebase();
+
+// Restore presenter session on refresh
+if (localStorage.getItem('gt_isPresenter') === 'true') {
+  isPresenter = true;
+  enterLobby();
+}
 </script>
 
 </body>
