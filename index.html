@@ -234,6 +234,18 @@ input:focus {
   text-transform: uppercase;
   letter-spacing: 3px;
 }
+.commentary {
+  font-size: 1.1rem;
+  color: var(--gold);
+  margin-top: 0.5rem;
+  min-height: 1.5em;
+  font-style: italic;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.commentary.visible {
+  opacity: 1;
+}
 @keyframes pulse {
   from { opacity: 1; }
   to { opacity: 0.4; }
@@ -701,7 +713,7 @@ input:focus {
 <!-- ========== GAME SCREEN ========== -->
 <div id="game-screen" class="screen">
   <div class="game-header">
-    <div class="fancy-title" style="font-size:1.3rem;margin-bottom:0;letter-spacing:0.1em;line-height:1;" aria-label="You Don't Know Grandma">
+    <div class="fancy-title" style="font-size:1.8rem;margin-bottom:0;letter-spacing:0.1em;line-height:1;" aria-label="You Don't Know Grandma">
       <span class="c-gold">Y</span><span class="c-coral filled">o</span><span class="c-white">u</span><span class="space"> </span><span class="c-blue filled">D</span><span class="c-gold">o</span><span class="c-coral filled">n</span><span class="c-white">'</span><span class="c-blue">t</span><span class="space"> </span><span class="c-gold filled">K</span><span class="c-coral">n</span><span class="c-white filled">o</span><span class="c-blue">w</span><span class="space"> </span><span class="c-gold">G</span><span class="c-coral filled">r</span><span class="c-white">a</span><span class="c-blue filled">n</span><span class="c-gold">d</span><span class="c-coral filled">m</span><span class="c-white">a</span>
     </div>
     <span id="progress-text">Q 1/10</span>
@@ -714,6 +726,7 @@ input:focus {
       <div class="choices" id="q-choices"></div>
       <div class="timer-below" id="timer-below">
         <div class="timer-display" id="timer-display">20s</div>
+        <div class="commentary" id="commentary"></div>
       </div>
       <div class="player-score-display" id="player-score"></div>
       <div class="waiting-msg" id="waiting-msg" style="display:none">Waiting for next question...</div>
@@ -726,7 +739,7 @@ input:focus {
       <div class="panel-footer">
         <div class="panel-stats" id="panel-stats">0 / 0 players correct</div>
         <div style="display:flex;gap:0.5rem;">
-          <button class="btn btn-secondary" style="flex:0 0 auto;font-size:0.9rem;padding:0.5rem 1rem;" id="prev-q-btn" onclick="presenterPrevQuestion()">
+          <button class="btn btn-secondary" style="flex:0 0 auto;font-size:0.75rem;padding:0.4rem 0.7rem;" id="prev-q-btn" onclick="presenterPrevQuestion()">
             &larr; Prev
           </button>
           <button class="btn btn-primary" style="flex:1;" id="next-q-btn" onclick="presenterNextQuestion()">
@@ -1162,6 +1175,9 @@ function renderQuestion(qIndex) {
   document.getElementById('q-category').textContent = q.category;
   document.getElementById('q-text').textContent = q.question;
   document.getElementById('waiting-msg').style.display = 'none';
+  const commentaryEl = document.getElementById('commentary');
+  commentaryEl.textContent = '';
+  commentaryEl.classList.remove('visible');
 
   const choicesEl = document.getElementById('q-choices');
   choicesEl.innerHTML = '';
@@ -1297,18 +1313,98 @@ function startTimer(questionStartTime) {
 
 function lockAllChoices() {
   document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('locked'));
-  if (!isPresenter) {
-    // Show correct answer if player hasn't answered
-    const qIndex = getCurrentQuestionIndex();
-    if (qIndex !== null) {
-      const q = getQuestion(qIndex);
-      const correctBtn = document.getElementById(`choice-${q.answer}`);
-      if (!document.querySelector('.choice-btn.selected') && !document.querySelector('.choice-btn.correct')) {
-        correctBtn.classList.add('correct');
-      }
+
+  // Always highlight the correct answer for everyone
+  const qIndex = getCurrentQuestionIndex();
+  if (qIndex !== null) {
+    const q = getQuestion(qIndex);
+    const correctBtn = document.getElementById(`choice-${q.answer}`);
+    if (!correctBtn.classList.contains('correct')) {
+      correctBtn.classList.add('correct');
     }
+  }
+
+  if (!isPresenter) {
     document.getElementById('waiting-msg').style.display = 'block';
   }
+
+  // Show commentary based on how people did
+  showCommentary(qIndex);
+}
+
+function showCommentary(qIndex) {
+  if (qIndex === null) return;
+  const commentaryEl = document.getElementById('commentary');
+  commentaryEl.classList.remove('visible');
+  commentaryEl.textContent = '';
+
+  db.ref(`answers/${qIndex}`).once('value', answerSnap => {
+    db.ref('players').once('value', playerSnap => {
+      const answers = answerSnap.val() || {};
+      const totalPlayers = playerSnap.numChildren();
+      const answerEntries = Object.values(answers);
+      const totalAnswered = answerEntries.length;
+      const correctCount = answerEntries.filter(a => a.correct).length;
+      const wrongCount = totalAnswered - correctCount;
+      const didntAnswer = totalPlayers - totalAnswered;
+
+      let msg = '';
+      const pct = totalPlayers > 0 ? correctCount / totalPlayers : 0;
+
+      if (totalAnswered === 0) {
+        const noAnswerMsgs = [
+          "Hello? Is this thing on?",
+          "Bueller? Bueller? Anyone?",
+          "Grandma would be disappointed. Nobody even guessed!",
+          "The sound of crickets is deafening."
+        ];
+        msg = noAnswerMsgs[Math.floor(Math.random() * noAnswerMsgs.length)];
+      } else if (pct === 1) {
+        const allRightMsgs = [
+          "Look at you, a family of Marion geniuses!",
+          "Perfect score! Grandma would be proud!",
+          "You ALL knew that one? Impressive!",
+          "Nailed it! Every single one of you!"
+        ];
+        msg = allRightMsgs[Math.floor(Math.random() * allRightMsgs.length)];
+      } else if (pct >= 0.7) {
+        const mostRightMsgs = [
+          "Nice! Most of you really do know Grandma!",
+          "Not bad at all! Marion raised some smart ones.",
+          "Pretty good! A few of you might need to visit more though.",
+          "Solid showing! Grandma's legacy lives on."
+        ];
+        msg = mostRightMsgs[Math.floor(Math.random() * mostRightMsgs.length)];
+      } else if (pct >= 0.3) {
+        const mixedMsgs = [
+          "A real split on that one! Some of you need more grandma time.",
+          "Half and half... just like Grandma's coffee.",
+          "That one separated the true grandma fans from the impostors.",
+          "Interesting... some of you clearly paid more attention at family dinners."
+        ];
+        msg = mixedMsgs[Math.floor(Math.random() * mixedMsgs.length)];
+      } else if (correctCount > 0) {
+        const fewRightMsgs = [
+          "Woah, that one stumped almost all of you!",
+          "Better brush up on your grandma knowledge, people!",
+          "Oof. Grandma is shaking her head from above.",
+          "Only a few got that? Time for more family storytelling!"
+        ];
+        msg = fewRightMsgs[Math.floor(Math.random() * fewRightMsgs.length)];
+      } else {
+        const noneRightMsgs = [
+          "Not a single correct answer?! You DON'T know Grandma!",
+          "Zero correct! The name of this game checks out.",
+          "Wow. Grandma is rolling her eyes right now.",
+          "Total wipeout! Maybe the next one will be easier... maybe."
+        ];
+        msg = noneRightMsgs[Math.floor(Math.random() * noneRightMsgs.length)];
+      }
+
+      commentaryEl.textContent = msg;
+      setTimeout(() => commentaryEl.classList.add('visible'), 100);
+    });
+  });
 }
 
 function getCurrentQuestionIndex() {
