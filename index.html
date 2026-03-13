@@ -484,6 +484,94 @@ input:focus {
   .question-area { padding: 1rem; }
 }
 
+/* ===== FANCY TITLE (Trivia Night style) ===== */
+.fancy-title {
+  font-size: 4.5rem;
+  font-weight: 200;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  line-height: 1.1;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.fancy-title span {
+  display: inline-block;
+  -webkit-text-stroke: 1.5px currentColor;
+  color: transparent;
+  transition: transform 0.3s;
+}
+.fancy-title span.filled {
+  -webkit-text-stroke: 0;
+  color: currentColor;
+  font-weight: 300;
+}
+.fancy-title .c-gold { color: var(--gold); }
+.fancy-title .c-coral { color: var(--coral); }
+.fancy-title .c-blue { color: var(--blue); }
+.fancy-title .c-white { color: var(--white); }
+.fancy-title .space { width: 0.3em; }
+.fancy-title .line-break { display: block; }
+
+@media (max-width: 768px) {
+  .fancy-title { font-size: 2.5rem; }
+}
+
+/* ===== DECORATIVE SHAPES ===== */
+.decorations {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.screen { position: relative; z-index: 1; }
+#game-screen { z-index: 1; }
+
+.deco {
+  position: absolute;
+  opacity: 0.7;
+}
+/* X shapes */
+.deco-x {
+  width: 0; height: 0;
+  font-size: 0;
+}
+.deco-x::before, .deco-x::after {
+  content: '';
+  position: absolute;
+  border-radius: 2px;
+}
+.deco-x::before {
+  width: var(--sz, 22px);
+  height: 3px;
+  background: var(--c);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.deco-x::after {
+  width: var(--sz, 22px);
+  height: 3px;
+  background: var(--c);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+/* O shapes */
+.deco-o {
+  border: 3px solid var(--c);
+  border-radius: 50%;
+  width: var(--sz, 22px);
+  height: var(--sz, 22px);
+}
+/* Dot shapes */
+.deco-dot {
+  background: var(--c);
+  border-radius: 50%;
+  width: var(--sz, 6px);
+  height: var(--sz, 6px);
+}
+
 .slide-in {
   animation: slideUp 0.35s ease-out;
 }
@@ -497,9 +585,43 @@ input:focus {
 
 <canvas id="confetti-canvas"></canvas>
 
+<!-- ========== DECORATIVE SHAPES ========== -->
+<div class="decorations" aria-hidden="true">
+  <!-- X shapes -->
+  <div class="deco deco-x" style="--c:var(--gold);--sz:28px;top:4%;left:7%"></div>
+  <div class="deco deco-x" style="--c:var(--blue);--sz:20px;top:8%;right:18%"></div>
+  <div class="deco deco-x" style="--c:var(--white);--sz:16px;top:38%;left:3%"></div>
+  <div class="deco deco-x" style="--c:var(--gold);--sz:24px;bottom:12%;right:6%"></div>
+  <div class="deco deco-x" style="--c:var(--blue);--sz:18px;bottom:28%;left:8%"></div>
+  <div class="deco deco-x" style="--c:var(--coral);--sz:22px;bottom:8%;right:30%"></div>
+  <div class="deco deco-x" style="--c:var(--coral);--sz:16px;top:22%;right:5%"></div>
+  <!-- O shapes -->
+  <div class="deco deco-o" style="--c:var(--blue);--sz:26px;top:6%;left:16%"></div>
+  <div class="deco deco-o" style="--c:var(--coral);--sz:20px;top:3%;right:8%"></div>
+  <div class="deco deco-o" style="--c:var(--gold);--sz:18px;top:42%;left:6%"></div>
+  <div class="deco deco-o" style="--c:var(--blue);--sz:24px;bottom:5%;left:5%"></div>
+  <div class="deco deco-o" style="--c:var(--coral);--sz:16px;bottom:18%;right:10%"></div>
+  <div class="deco deco-o" style="--c:var(--gold);--sz:22px;bottom:4%;right:8%"></div>
+  <!-- Dots -->
+  <div class="deco deco-dot" style="--c:var(--coral);--sz:7px;top:3%;left:5%"></div>
+  <div class="deco deco-dot" style="--c:var(--white);--sz:5px;top:10%;left:25%"></div>
+  <div class="deco deco-dot" style="--c:var(--gold);--sz:8px;top:7%;right:12%"></div>
+  <div class="deco deco-dot" style="--c:var(--coral);--sz:6px;top:5%;right:5%"></div>
+  <div class="deco deco-dot" style="--c:var(--white);--sz:5px;top:18%;right:3%"></div>
+  <div class="deco deco-dot" style="--c:var(--blue);--sz:7px;top:30%;left:2%"></div>
+  <div class="deco deco-dot" style="--c:var(--white);--sz:5px;bottom:22%;left:12%"></div>
+  <div class="deco deco-dot" style="--c:var(--gold);--sz:7px;bottom:15%;left:3%"></div>
+  <div class="deco deco-dot" style="--c:var(--white);--sz:5px;bottom:10%;right:16%"></div>
+  <div class="deco deco-dot" style="--c:var(--coral);--sz:6px;bottom:3%;left:18%"></div>
+  <div class="deco deco-dot" style="--c:var(--blue);--sz:8px;bottom:6%;right:22%"></div>
+  <div class="deco deco-dot" style="--c:var(--white);--sz:5px;bottom:35%;right:3%"></div>
+</div>
+
 <!-- ========== JOIN SCREEN ========== -->
 <div id="join-screen" class="screen active">
-  <h1 class="title">You Don't Know Grandma</h1>
+  <div class="fancy-title" aria-label="You Don't Know Grandma">
+    <span class="c-gold">Y</span><span class="c-coral filled">o</span><span class="c-white">u</span><span class="space"> </span><span class="c-blue filled">D</span><span class="c-gold">o</span><span class="c-coral filled">n</span><span class="c-white">'</span><span class="c-blue">t</span><span class="line-break"></span><span class="c-gold filled">K</span><span class="c-coral">n</span><span class="c-white filled">o</span><span class="c-blue">w</span><span class="space"> </span><span class="c-gold">G</span><span class="c-coral filled">r</span><span class="c-white">a</span><span class="c-blue filled">n</span><span class="c-gold">d</span><span class="c-coral filled">m</span><span class="c-white">a</span>
+  </div>
   <p class="subtitle">A trivia game in memory of Marion Murphy</p>
 
   <div class="card" id="join-card">
@@ -521,7 +643,9 @@ input:focus {
 
 <!-- ========== LOBBY SCREEN ========== -->
 <div id="lobby-screen" class="screen">
-  <h1 class="title">You Don't Know Grandma</h1>
+  <div class="fancy-title" style="font-size:3rem;" aria-label="You Don't Know Grandma">
+    <span class="c-gold">Y</span><span class="c-coral filled">o</span><span class="c-white">u</span><span class="space"> </span><span class="c-blue filled">D</span><span class="c-gold">o</span><span class="c-coral filled">n</span><span class="c-white">'</span><span class="c-blue">t</span><span class="space"> </span><span class="c-gold filled">K</span><span class="c-coral">n</span><span class="c-white filled">o</span><span class="c-blue">w</span><span class="space"> </span><span class="c-gold">G</span><span class="c-coral filled">r</span><span class="c-white">a</span><span class="c-blue filled">n</span><span class="c-gold">d</span><span class="c-coral filled">m</span><span class="c-white">a</span>
+  </div>
   <p class="subtitle" id="lobby-subtitle">Waiting for the game to start...</p>
 
   <div class="card">
@@ -573,7 +697,9 @@ input:focus {
 
 <!-- ========== RESULTS SCREEN ========== -->
 <div id="results-screen" class="screen">
-  <h1 class="title">Game Over!</h1>
+  <div class="fancy-title" style="font-size:3.5rem;" aria-label="Game Over!">
+    <span class="c-gold">G</span><span class="c-coral filled">a</span><span class="c-white">m</span><span class="c-blue filled">e</span><span class="space"> </span><span class="c-gold filled">O</span><span class="c-coral">v</span><span class="c-white filled">e</span><span class="c-blue">r</span><span class="c-gold filled">!</span>
+  </div>
   <p class="subtitle">Thanks for playing! In memory of Marion Murphy</p>
   <div class="final-scores" id="final-scores"></div>
   <button class="btn btn-primary" onclick="resetGame()">Play Again</button>
