@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grandma Trivia!</title>
+<title>You Don't Know Grandma</title>
 
 <!-- Firebase SDK (compat for simple single-file usage) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -338,6 +338,49 @@ input:focus {
   text-align: center;
 }
 
+/* ===== SCOREBOARD BAR ===== */
+.scoreboard-bar {
+  width: 100%;
+  background: white;
+  border-top: 1px solid #e0e0e0;
+  padding: 0.6rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.scoreboard-bar .sb-label {
+  font-size: 0.85rem;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+.scoreboard-bar .sb-player {
+  background: #f3e5f5;
+  border-radius: 20px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.scoreboard-bar .sb-player .sb-name {
+  color: #555;
+}
+.scoreboard-bar .sb-player .sb-score {
+  font-weight: bold;
+  color: #7b1fa2;
+}
+.scoreboard-bar .sb-player.sb-me {
+  background: #e8eaf6;
+  border: 2px solid #7b1fa2;
+}
+
 /* ===== RESULTS ===== */
 .final-scores {
   display: flex;
@@ -388,8 +431,8 @@ input:focus {
 
 <!-- ========== JOIN SCREEN ========== -->
 <div id="join-screen" class="screen active">
-  <h1 class="title">Grandma Trivia!</h1>
-  <p class="subtitle">How well do you really know Grandma?</p>
+  <h1 class="title">You Don't Know Grandma</h1>
+  <p class="subtitle">A trivia game in memory of Marion Murphy</p>
 
   <div class="card" id="join-card">
     <h2>Join the Game</h2>
@@ -410,7 +453,7 @@ input:focus {
 
 <!-- ========== LOBBY SCREEN ========== -->
 <div id="lobby-screen" class="screen">
-  <h1 class="title">Grandma Trivia!</h1>
+  <h1 class="title">You Don't Know Grandma</h1>
   <p class="subtitle" id="lobby-subtitle">Waiting for the game to start...</p>
 
   <div class="card">
@@ -426,7 +469,7 @@ input:focus {
 <!-- ========== GAME SCREEN ========== -->
 <div id="game-screen" class="screen">
   <div class="game-header">
-    <h1>Grandma Trivia!</h1>
+    <h1>You Don't Know Grandma</h1>
     <div style="display:flex;align-items:center;gap:1.5rem;">
       <span id="progress-text">Q 1/10</span>
       <div class="timer-display" id="timer-display">30s</div>
@@ -454,12 +497,16 @@ input:focus {
       </div>
     </div>
   </div>
+
+  <div class="scoreboard-bar" id="scoreboard-bar">
+    <span class="sb-label">Scores</span>
+  </div>
 </div>
 
 <!-- ========== RESULTS SCREEN ========== -->
 <div id="results-screen" class="screen">
   <h1 class="title">Game Over!</h1>
-  <p class="subtitle">Thanks for playing Grandma Trivia!</p>
+  <p class="subtitle">Thanks for playing! In memory of Marion Murphy</p>
   <div class="final-scores" id="final-scores"></div>
   <button class="btn btn-primary" onclick="resetGame()">Play Again</button>
 </div>
@@ -483,85 +530,197 @@ const FIREBASE_CONFIG = {
 };
 
 // 2. PRESENTER PASSWORD (change this to something your family won't guess)
-const PRESENTER_PASSWORD = "grandma";
+const PRESENTER_PASSWORD = "grandmabanana";
 
 // 3. TIMER DURATION (seconds)
 const TIMER_SECONDS = 30;
 
 // =====================================================
-// TRIVIA QUESTIONS — CUSTOMIZE FOR YOUR GRANDMA!
+// TRIVIA QUESTIONS — You Don't Know Grandma!
 // answer: index 0-3 matching the choices array
 // =====================================================
 const QUESTIONS = [
   {
     category: "Early Life",
-    question: "Where was Grandma born?",
-    choices: ["Chicago, IL", "Manila, Philippines", "San Francisco, CA", "Honolulu, HI"],
-    answer: 1,
-    funFact: "She grew up near the bay and loved watching the fishing boats come in every morning!"
-  },
-  {
-    category: "Favorites",
-    question: "What is Grandma's favorite dessert?",
-    choices: ["Apple pie", "Chocolate cake", "Leche flan", "Ice cream"],
+    question: "Where was Marion born?",
+    choices: ["Madison, Wisconsin", "Agat, Guam", "Oshkosh, Wisconsin", "On a frozen lake during ice fishing season"],
     answer: 2,
-    funFact: "She learned the recipe from her own grandmother and has been making it for over 50 years!"
+    funFact: "Oshkosh, Wisconsin — famous for kids' overalls and one very special grandma."
   },
   {
     category: "Family",
-    question: "How many grandchildren does Grandma have?",
-    choices: ["5", "8", "12", "15"],
+    question: "What was Marion's mom's first name?",
+    choices: ["Her Royal Highness, Duchess of Oshkosh", "Patricia", "Alice", "Gertrude"],
     answer: 2,
-    funFact: "And she remembers every single birthday without looking at a calendar!"
+    funFact: "Alice passed away when Marion was just 4 months old."
   },
   {
-    category: "Adventures",
-    question: "What was Grandma's first job?",
-    choices: ["Teacher", "Nurse", "Seamstress", "Store clerk"],
-    answer: 0,
-    funFact: "She taught elementary school for 10 years before switching careers."
-  },
-  {
-    category: "Favorites",
-    question: "What is Grandma's favorite TV show?",
-    choices: ["Jeopardy!", "The Price is Right", "Wheel of Fortune", "Golden Girls"],
-    answer: 3,
-    funFact: "She says she's just like Sophia — and honestly, she's not wrong!"
-  },
-  {
-    category: "Traditions",
-    question: "What does Grandma always bring to family gatherings?",
-    choices: ["Her famous lumpia", "A big salad", "Homemade bread", "A store-bought cake"],
-    answer: 0,
-    funFact: "The family record is 200 lumpia made in one afternoon. Everyone helps roll!"
+    category: "Family",
+    question: "What was her father's name?",
+    choices: ["Patrick Muth", "Andrew Muth", "Wolfgang Muth", "Papa Muth Sr., Esq."],
+    answer: 1,
+    funFact: "Andrew raised Marion and her siblings after their mother passed away."
   },
   {
     category: "Early Life",
-    question: "What year did Grandma move to the United States?",
-    choices: ["1960", "1968", "1975", "1982"],
-    answer: 1,
-    funFact: "She arrived with just two suitcases and a heart full of dreams."
-  },
-  {
-    category: "Quirks",
-    question: "What does Grandma always say when you leave her house?",
-    choices: ["\"Drive safe!\"", "\"Did you eat enough?\"", "\"Take some food home!\"", "All of the above"],
-    answer: 3,
-    funFact: "In that exact order, every single time. It's basically a ritual."
+    question: "How old was Marion when her mom died?",
+    choices: ["1.5 years old", "7 years old", "4 months old", "42 — she just aged really well"],
+    answer: 2,
+    funFact: "Despite losing her mother so young, Marion grew up to become an incredible mom to eight children."
   },
   {
     category: "Family",
-    question: "What is Grandma's secret ingredient in her cooking?",
-    choices: ["MSG", "Love", "Fish sauce", "All three — she'll never tell"],
-    answer: 3,
-    funFact: "If you ask her, she'll just smile and say 'a little bit of everything.'"
+    question: "What are Marion's siblings' names?",
+    choices: ["Sleepy, Grumpy, Dopey, Happy, Bashful and Doc", "Eddie, Charlie, Eugene, Richard, Barbara and Timmy", "Edgar, Chester, Ella, Carlton, Ricky and Marge", "Larry, Curly, Moe, Shemp, Joe and Curly Joe"],
+    answer: 1,
+    funFact: "A big, lively family — just the way Marion liked it."
   },
   {
-    category: "Adventures",
-    question: "What hobby did Grandma pick up in her 60s?",
-    choices: ["Gardening", "Karaoke", "Zumba", "Online shopping"],
+    category: "Love Story",
+    question: "When Marion saw Joe, which brother did she decide to forget?",
+    choices: ["Milt", "She still hasn't decided", "Jack", "All of them — Joe was THAT handsome"],
+    answer: 2,
+    funFact: "Sorry, Jack. Joe must have been quite the catch!"
+  },
+  {
+    category: "Family",
+    question: "How old was Marion when she had her first baby?",
+    choices: ["21 years", "Old enough to vote, too young to rent a car", "16 years, 8 months", "18 years, 10 months"],
+    answer: 3,
+    funFact: "The first of eight! Marion and Joe didn't waste any time building their big family."
+  },
+  {
+    category: "Love Story",
+    question: "What's Marion and Joe's wedding date?",
+    choices: ["April 30, 1949", "June 5, 1947", "February 30, 1946", "March 12, 1929"],
     answer: 1,
-    funFact: "Her go-to song is 'My Way' by Frank Sinatra, and she ALWAYS brings the house down."
+    funFact: "A summer wedding to start a lifetime of adventures together."
+  },
+  {
+    category: "Friends",
+    question: "Where did Marion and Joe meet their lifelong friends, Bud and Nancy Pisarek?",
+    choices: ["At the sock hop in senior year of high school", "In the Walmart checkout line arguing over cheese", "At Joe's first newspaper job", "At the University of Wisconsin trailer park in Madison"],
+    answer: 3,
+    funFact: "Trailer park neighbors turned lifelong friends — the best kind of friendship story."
+  },
+  {
+    category: "Hobbies",
+    question: "When did Marion first learn to play bridge?",
+    choices: ["In high school — it was bridge or detention", "In 1951 in Columbus, WI, invited to bridge parties while Joe worked his first job", "She was born knowing how to play — it's genetic", "At age 10 from her card-shark grandmother"],
+    answer: 1,
+    funFact: "What started with a friendly invitation became a lifelong passion."
+  },
+  {
+    category: "Family",
+    question: "How many kids were born in Wisconsin, and how many in California?",
+    choices: ["4 in Wisconsin, 4 in California", "3 in Wisconsin, 5 in California", "All 8 in the back of the station wagon", "2 in Wisconsin, 6 in California"],
+    answer: 1,
+    funFact: "Colleen, Maureen and Shannon were the Wisconsin babies. Kerry, Tim, Erin, Megan and Joey were born in California."
+  },
+  {
+    category: "Family",
+    question: "How many grandchildren and great grandchildren did Marion have before she passed in December 2025?",
+    choices: ["20 grandchildren, 15 great grandchildren", "27 grandchildren, 29 great grandchildren", "Too many to fit on one Christmas card", "15 grandchildren, 35 great grandchildren"],
+    answer: 1,
+    funFact: "And more have been born since — her legacy keeps growing!"
+  },
+  {
+    category: "Island Life",
+    question: "How many years did Marion live in Guam?",
+    choices: ["30 years", "Long enough to be declared an honorary coconut", "59 years", "45 years"],
+    answer: 2,
+    funFact: "She moved to Guam in 1966 and left in 2025 — nearly six decades of island life!"
+  },
+  {
+    category: "Career",
+    question: "What year did Marion begin teaching?",
+    choices: ["1968", "1973", "1980", "The day her youngest learned to walk — she needed more kids to manage"],
+    answer: 1,
+    funFact: "She went on to teach kindergarten for about 25 years!"
+  },
+  {
+    category: "Music & Mischief",
+    question: "What song was Marion pulled over for dancing to while driving?",
+    choices: ["Baby Got Back by Sir Mix-a-Lot", "Staying Alive by the Bee Gees", "Born to Be Wild by Steppenwolf", "Malafunkshun's New Dance Craze"],
+    answer: 3,
+    funFact: "The officer probably wished he had her moves."
+  },
+  {
+    category: "Family",
+    question: "Which of Marion's brothers died in a car accident as a kid?",
+    choices: ["Eddie, in 1958", "Timmy, in 1955", "Charlie, in 1952", "Eugene, in 1960"],
+    answer: 1,
+    funFact: "Timmy passed in 1955 while driving to visit the family in Brookings. He is deeply missed."
+  },
+  {
+    category: "Places",
+    question: "Name four places Marion and Joe lived in California.",
+    choices: ["Hollywood, Malibu, Beverly Hills and Rodeo Drive", "Willits, Santa Clara, Kings Beach and Auburn", "Sacramento, Oakland, Fresno and Bakersfield", "San Diego, Santa Cruz, Monterey and Napa"],
+    answer: 1,
+    funFact: "They also lived in San Jose! The family covered a lot of California ground."
+  },
+  {
+    category: "Places",
+    question: "Name the 2 places Marion lived in Oregon.",
+    choices: ["Portland and Eugene", "Myrtle Creek and Brookings", "Salem and Bend", "Astoria and Narnia"],
+    answer: 1,
+    funFact: "From Oregon's beauty to Guam's tropical paradise — quite the journey!"
+  },
+  {
+    category: "Island Life",
+    question: "What 3 Guam villages did Marion live in?",
+    choices: ["Dededo, Tamuning and Hagatna", "Barrigada, Sinajana and Asan", "She founded her own village called Marionville", "Mangilao, Agat and Yona"],
+    answer: 3,
+    funFact: "Three villages across 59 years — Guam was truly her home."
+  },
+  {
+    category: "Places",
+    question: "Name 3 places Marion lived in Wisconsin.",
+    choices: ["Milwaukee, Green Bay and Kenosha", "Oshkosh, Madison, Columbus and Clintonville", "Eau Claire, La Crosse and Appleton", "Cheese Town, Brat City and Packersville"],
+    answer: 1,
+    funFact: "Wisconsin was home base before the family's big adventures out west and across the Pacific."
+  },
+  {
+    category: "Career",
+    question: "How long did Marion teach kindergarten?",
+    choices: ["15 years", "30 years", "About 25 years", "Until the kids started teaching her"],
+    answer: 2,
+    funFact: "A quarter century of shaping young minds — that's a LOT of finger paintings on the fridge."
+  },
+  {
+    category: "Family",
+    question: "Which of her kids gave Marion the most stress, objectively?",
+    choices: ["Tim — have you met Tim?", "Joey, and he knows what he did", "All of them! She was always there for us, no matter what.", "The first three — after that she stopped keeping track"],
+    answer: 2,
+    funFact: "She loved every one of them fiercely and unconditionally, through thick and thin."
+  },
+  {
+    category: "Grandchildren",
+    question: "Who is Marion's first grandchild?",
+    choices: ["Patrick", "Ana", "A puppy named Biscuit", "Seth"],
+    answer: 3,
+    funFact: "Seth — the one who started it all. 26 more grandchildren would follow!"
+  },
+  {
+    category: "Grandchildren",
+    question: "Who is Marion's 10th grandchild?",
+    choices: ["Patrick", "Seth", "Ana", "She lost count after number 7"],
+    answer: 2,
+    funFact: "With 27 grandchildren, keeping track is a superpower — and Marion had it."
+  },
+  {
+    category: "Grandchildren",
+    question: "Who is Marion's 20th grandchild?",
+    choices: ["Ana", "By that point she just called everyone 'sweetie'", "Seth", "Patrick"],
+    answer: 3,
+    funFact: "Number 20 of 27 — and she remembered every single name and birthday!"
+  },
+  {
+    category: "Grandma Traditions",
+    question: "What did Marion always give visiting grandchildren?",
+    choices: ["A $5 bill and a lecture", "The Wi-Fi password", "2 cookies!", "A kiss and a mandatory nap"],
+    answer: 2,
+    funFact: "Always exactly 2. Not 1, not 3. The perfect grandma portion."
   }
 ];
 
@@ -573,7 +732,14 @@ let myPlayerId = null;
 let isPresenter = false;
 let timerInterval = null;
 let serverTimeOffset = 0;
+let questionOrder = null;
 const LETTERS = ['A', 'B', 'C', 'D'];
+
+// Map from display index to actual question
+function getQuestion(displayIndex) {
+  if (questionOrder) return QUESTIONS[questionOrder[displayIndex]];
+  return QUESTIONS[displayIndex];
+}
 
 // =====================================================
 // FIREBASE INIT
@@ -686,6 +852,13 @@ function enterLobby() {
 // PRESENTER: START GAME
 // =====================================================
 function presenterStartGame() {
+  // Generate shuffled question order (Fisher-Yates)
+  const order = Array.from({length: QUESTIONS.length}, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  db.ref('questionOrder').set(order);
   db.ref('gameState').set('playing');
   db.ref('currentQuestion').set(0);
   db.ref('questionStartedAt').set(firebase.database.ServerValue.TIMESTAMP);
@@ -702,28 +875,38 @@ function enterGame() {
     document.getElementById('presenter-panel').style.display = 'flex';
   }
 
-  // Listen for current question changes
-  db.ref('currentQuestion').on('value', snap => {
-    const qIndex = snap.val();
-    if (qIndex !== null && qIndex !== undefined) {
-      renderQuestion(qIndex);
-    }
-  });
+  // Load question order first, then set up listeners
+  db.ref('questionOrder').once('value', snap => {
+    questionOrder = snap.val();
 
-  // Listen for question start time (for timer)
-  db.ref('questionStartedAt').on('value', snap => {
-    const startTime = snap.val();
-    if (startTime) {
-      startTimer(startTime);
-    }
-  });
-
-  // Listen for answers (presenter view)
-  if (isPresenter) {
-    db.ref('answers').on('value', snap => {
-      updatePresenterPanel(snap.val());
+    // Listen for current question changes
+    db.ref('currentQuestion').on('value', snap => {
+      const qIndex = snap.val();
+      if (qIndex !== null && qIndex !== undefined) {
+        renderQuestion(qIndex);
+      }
     });
-  }
+
+    // Listen for question start time (for timer)
+    db.ref('questionStartedAt').on('value', snap => {
+      const startTime = snap.val();
+      if (startTime) {
+        startTimer(startTime);
+      }
+    });
+
+    // Listen for player scores (scoreboard)
+    db.ref('players').on('value', snap => {
+      renderScoreboard(snap.val());
+    });
+
+    // Listen for answers (presenter view)
+    if (isPresenter) {
+      db.ref('answers').on('value', snap => {
+        updatePresenterPanel(snap.val());
+      });
+    }
+  });
 }
 
 function renderQuestion(qIndex) {
@@ -732,7 +915,7 @@ function renderQuestion(qIndex) {
     return;
   }
 
-  const q = QUESTIONS[qIndex];
+  const q = getQuestion(qIndex);
   document.getElementById('progress-text').textContent = `Q ${qIndex + 1}/${QUESTIONS.length}`;
   document.getElementById('q-category').textContent = q.category;
   document.getElementById('q-text').textContent = q.question;
@@ -793,7 +976,7 @@ function submitAnswer(qIndex, choiceIndex) {
   const timerEl = document.getElementById('timer-display');
   if (timerEl.textContent === "Time!") return;
 
-  const q = QUESTIONS[qIndex];
+  const q = getQuestion(qIndex);
   const isCorrect = choiceIndex === q.answer;
 
   // Lock all buttons
@@ -869,7 +1052,7 @@ function lockAllChoices() {
     // Show correct answer if player hasn't answered
     const qIndex = getCurrentQuestionIndex();
     if (qIndex !== null) {
-      const q = QUESTIONS[qIndex];
+      const q = getQuestion(qIndex);
       const correctBtn = document.getElementById(`choice-${q.answer}`);
       if (!document.querySelector('.choice-btn.selected') && !document.querySelector('.choice-btn.correct')) {
         correctBtn.classList.add('correct');
@@ -946,6 +1129,25 @@ function presenterNextQuestion() {
 }
 
 // =====================================================
+// SCOREBOARD
+// =====================================================
+function renderScoreboard(playersObj) {
+  const bar = document.getElementById('scoreboard-bar');
+  const players = playersObj || {};
+  const sorted = Object.entries(players)
+    .map(([id, p]) => ({ id, name: p.name, score: p.score || 0 }))
+    .sort((a, b) => b.score - a.score);
+
+  bar.innerHTML = '<span class="sb-label">Scores</span>';
+  sorted.forEach(p => {
+    const div = document.createElement('span');
+    div.className = 'sb-player' + (p.id === myPlayerId ? ' sb-me' : '');
+    div.innerHTML = `<span class="sb-name">${escapeHtml(p.name)}</span><span class="sb-score">${p.score}</span>`;
+    bar.appendChild(div);
+  });
+}
+
+// =====================================================
 // RESULTS
 // =====================================================
 function showResults() {
@@ -972,6 +1174,7 @@ function resetGame() {
     db.ref('gameState').set('lobby');
     db.ref('currentQuestion').set(0);
     db.ref('answers').remove();
+    db.ref('questionOrder').remove();
     // Reset all player scores
     db.ref('players').once('value', snap => {
       const updates = {};
