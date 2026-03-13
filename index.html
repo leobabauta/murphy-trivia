@@ -212,17 +212,27 @@ input:focus {
   -webkit-text-stroke-width: 1px;
 }
 
+.timer-below {
+  margin-top: 1.5rem;
+  text-align: center;
+}
 .timer-display {
-  font-size: 1.4rem;
+  font-size: 2rem;
   font-weight: 700;
-  min-width: 60px;
   text-align: center;
   color: var(--blue);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
 }
 .timer-display.urgent {
   color: var(--coral);
   animation: pulse 0.5s infinite alternate;
+}
+.timer-display.times-up {
+  color: var(--coral);
+  font-size: 1.6rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
 }
 @keyframes pulse {
   from { opacity: 1; }
@@ -415,8 +425,10 @@ input:focus {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  overflow-x: auto;
+  flex-wrap: wrap;
   flex-shrink: 0;
+  max-height: 5rem;
+  overflow-y: auto;
 }
 .scoreboard-bar .sb-label {
   font-size: 0.75rem;
@@ -692,10 +704,7 @@ input:focus {
     <div class="fancy-title" style="font-size:1.3rem;margin-bottom:0;letter-spacing:0.1em;line-height:1;" aria-label="You Don't Know Grandma">
       <span class="c-gold">Y</span><span class="c-coral filled">o</span><span class="c-white">u</span><span class="space"> </span><span class="c-blue filled">D</span><span class="c-gold">o</span><span class="c-coral filled">n</span><span class="c-white">'</span><span class="c-blue">t</span><span class="space"> </span><span class="c-gold filled">K</span><span class="c-coral">n</span><span class="c-white filled">o</span><span class="c-blue">w</span><span class="space"> </span><span class="c-gold">G</span><span class="c-coral filled">r</span><span class="c-white">a</span><span class="c-blue filled">n</span><span class="c-gold">d</span><span class="c-coral filled">m</span><span class="c-white">a</span>
     </div>
-    <div style="display:flex;align-items:center;gap:1.5rem;">
-      <span id="progress-text">Q 1/10</span>
-      <div class="timer-display" id="timer-display">20s</div>
-    </div>
+    <span id="progress-text">Q 1/10</span>
   </div>
 
   <div class="game-content">
@@ -703,6 +712,9 @@ input:focus {
       <div class="category-badge" id="q-category"></div>
       <div class="question-text" id="q-text"></div>
       <div class="choices" id="q-choices"></div>
+      <div class="timer-below" id="timer-below">
+        <div class="timer-display" id="timer-display">20s</div>
+      </div>
       <div class="player-score-display" id="player-score"></div>
       <div class="waiting-msg" id="waiting-msg" style="display:none">Waiting for next question...</div>
     </div>
@@ -713,9 +725,14 @@ input:focus {
       <div class="correct-list" id="correct-list"></div>
       <div class="panel-footer">
         <div class="panel-stats" id="panel-stats">0 / 0 players correct</div>
-        <button class="btn btn-primary" style="width:100%" id="next-q-btn" onclick="presenterNextQuestion()">
-          Next Question
-        </button>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn-secondary" style="flex:0 0 auto;font-size:0.9rem;padding:0.5rem 1rem;" id="prev-q-btn" onclick="presenterPrevQuestion()">
+            &larr; Prev
+          </button>
+          <button class="btn btn-primary" style="flex:1;" id="next-q-btn" onclick="presenterNextQuestion()">
+            Next Question
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -900,8 +917,8 @@ const QUESTIONS = [
   },
   {
     category: "Places",
-    question: "Name 3 places Marion lived in Wisconsin.",
-    choices: ["Milwaukee, Green Bay and Kenosha", "Oshkosh, Madison, Columbus and Clintonville", "Eau Claire, La Crosse and Appleton", "Cheese Town, Brat City and Packersville"],
+    question: "Name 4 places Marion lived in Wisconsin.",
+    choices: ["Milwaukee, Green Bay, Kenosha and Racine", "Oshkosh, Madison, Columbus and Clintonville", "Eau Claire, La Crosse, Appleton and Wausau", "Cheese Town, Brat City, Packersville and Curdburg"],
     answer: 1,
     funFact: "Wisconsin was home base before the family's big adventures out west and across the Pacific."
   },
@@ -1199,7 +1216,7 @@ function submitAnswer(qIndex, choiceIndex) {
 
   // Check timer
   const timerEl = document.getElementById('timer-display');
-  if (timerEl.textContent === "Time!") return;
+  if (timerEl.classList.contains('times-up')) return;
 
   const q = getQuestion(qIndex);
   const isCorrect = choiceIndex === q.answer;
@@ -1247,13 +1264,20 @@ function startTimer(questionStartTime) {
 
   const timerEl = document.getElementById('timer-display');
   timerEl.classList.remove('urgent');
+  timerEl.classList.remove('times-up');
 
   function tick() {
     const elapsed = (serverNow() - questionStartTime) / 1000;
     const remaining = Math.max(0, TIMER_SECONDS - elapsed);
     const secs = Math.ceil(remaining);
 
-    timerEl.textContent = remaining > 0 ? `${secs}s` : "Time!";
+    if (remaining > 0) {
+      timerEl.textContent = `${secs}s`;
+      timerEl.classList.remove('times-up');
+    } else {
+      timerEl.textContent = "Time's up!";
+      timerEl.classList.add('times-up');
+    }
 
     if (secs <= 10 && secs > 0) {
       timerEl.classList.add('urgent');
@@ -1348,6 +1372,16 @@ function presenterNextQuestion() {
       db.ref('gameState').set('finished');
     } else {
       db.ref('currentQuestion').set(next);
+      db.ref('questionStartedAt').set(firebase.database.ServerValue.TIMESTAMP);
+    }
+  });
+}
+
+function presenterPrevQuestion() {
+  db.ref('currentQuestion').once('value', snap => {
+    const prev = (snap.val() || 0) - 1;
+    if (prev >= 0) {
+      db.ref('currentQuestion').set(prev);
       db.ref('questionStartedAt').set(firebase.database.ServerValue.TIMESTAMP);
     }
   });
