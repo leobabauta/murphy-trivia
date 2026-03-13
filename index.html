@@ -231,6 +231,7 @@ input:focus {
 #game-screen {
   padding: 0;
   justify-content: flex-start;
+  position: relative;
 }
 #game-screen.active { display: flex; }
 
@@ -354,10 +355,10 @@ input:focus {
   overflow-y: auto;
   position: relative;
 }
-.question-area .grandma-photo {
+#game-screen > .grandma-photo {
   position: absolute;
-  top: -0.5rem;
-  left: -0.5rem;
+  top: 1.8rem;
+  left: 0.8rem;
   z-index: 10;
   transform: rotate(-8deg);
 }
@@ -945,12 +946,12 @@ input:focus {
     </div>
   </div>
 
+  <div class="grandma-photo visible" id="grandma-photo">
+    <img src="photos/marion-1.png" alt="Marion Murphy" id="grandma-img">
+  </div>
+
   <div class="game-content">
     <div class="question-area slide-in" id="question-area">
-      <div class="grandma-photo visible" id="grandma-photo">
-        <img src="photos/marion-1.png" alt="Marion Murphy" id="grandma-img">
-        <div class="grandma-ring"></div>
-      </div>
       <div class="category-badge" id="q-category"></div>
       <div class="question-text" id="q-text"></div>
       <div class="choices" id="q-choices"></div>
