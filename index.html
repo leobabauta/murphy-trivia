@@ -351,6 +351,12 @@ input:focus {
   justify-content: center;
   padding: 2rem;
   overflow-y: auto;
+  position: relative;
+}
+.question-area .grandma-photo {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
 }
 
 .category-badge {
@@ -623,15 +629,15 @@ input:focus {
 
 /* ===== GRANDMA PHOTO CUTOUT ===== */
 .grandma-photo {
-  position: fixed;
-  top: 1rem;
-  right: 1.5rem;
-  width: 90px;
-  height: 90px;
-  z-index: 50;
+  display: none;
+  width: 130px;
+  height: 130px;
   border-radius: 50%;
   overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
 }
+.grandma-photo.visible { display: block; }
 .grandma-photo img {
   width: 100%;
   height: 100%;
@@ -651,10 +657,8 @@ input:focus {
 }
 @media (max-width: 768px) {
   .grandma-photo {
-    width: 60px;
-    height: 60px;
-    top: 0.5rem;
-    right: 0.8rem;
+    width: 80px;
+    height: 80px;
   }
 }
 
@@ -760,11 +764,6 @@ input:focus {
 <canvas id="confetti-canvas"></canvas>
 <div class="float-msg-container" id="float-msg-container"></div>
 
-<!-- Grandma photo cutout -->
-<div class="grandma-photo" id="grandma-photo">
-  <img src="photos/marion-1.png" alt="Marion Murphy" id="grandma-img">
-  <div class="grandma-ring"></div>
-</div>
 
 <!-- ========== DECORATIVE SHAPES ========== -->
 <div class="decorations" aria-hidden="true">
@@ -850,6 +849,10 @@ input:focus {
 
   <div class="game-content">
     <div class="question-area slide-in" id="question-area">
+      <div class="grandma-photo visible" id="grandma-photo">
+        <img src="photos/marion-1.png" alt="Marion Murphy" id="grandma-img">
+        <div class="grandma-ring"></div>
+      </div>
       <div class="category-badge" id="q-category"></div>
       <div class="question-text" id="q-text"></div>
       <div class="choices" id="q-choices"></div>
@@ -1345,6 +1348,9 @@ function renderQuestion(qIndex) {
     document.getElementById('correct-list').innerHTML = '';
     document.getElementById('panel-stats').textContent = '0 players correct';
   }
+
+  // Advance grandma photo
+  advanceGrandmaPhoto();
 
   // Animate
   const area = document.getElementById('question-area');
@@ -1981,8 +1987,9 @@ const GRANDMA_PHOTOS = [
 ];
 let currentPhotoIdx = 0;
 
-function rotateGrandmaPhoto() {
+function advanceGrandmaPhoto() {
   const img = document.getElementById('grandma-img');
+  if (!img) return;
   img.style.opacity = '0';
   setTimeout(() => {
     currentPhotoIdx = (currentPhotoIdx + 1) % GRANDMA_PHOTOS.length;
@@ -1990,9 +1997,6 @@ function rotateGrandmaPhoto() {
     img.style.opacity = '1';
   }, 600);
 }
-
-// Rotate every 8 seconds
-setInterval(rotateGrandmaPhoto, 8000);
 
 // =====================================================
 // BOOT
