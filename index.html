@@ -1448,12 +1448,14 @@ function startTimer(questionStartTime) {
 
     if (remaining <= 0) {
       clearInterval(timerInterval);
+      stopTriviaMusic();
       lockAllChoices();
     }
   }
 
   tick();
   timerInterval = setInterval(tick, 200);
+  playTriviaMusic();
 }
 
 function lockAllChoices() {
@@ -1552,6 +1554,13 @@ function showCommentary(qIndex) {
 
       commentaryEl.textContent = msg;
       setTimeout(() => commentaryEl.classList.add('visible'), 100);
+
+      // Play cheer or boo sound
+      if (pct >= 0.5) {
+        playSound('cheer');
+      } else {
+        playSound('boo');
+      }
     });
   });
 }
@@ -1971,6 +1980,50 @@ document.getElementById('player-name-input').addEventListener('keydown', e => {
 document.getElementById('presenter-pw-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') presenterLogin();
 });
+
+// =====================================================
+// AUDIO SYSTEM
+// =====================================================
+const triviaMusic = new Audio('audio/trivia-song.mp3');
+triviaMusic.loop = true;
+triviaMusic.volume = 0.4;
+
+const cheerSound = new Audio('audio/cheer.mp3');
+cheerSound.volume = 0.6;
+
+const booSound = new Audio('audio/boo.mp3');
+booSound.volume = 0.6;
+
+let audioUnlocked = false;
+
+// Browsers require a user gesture before playing audio.
+// Unlock on first click anywhere on the page.
+function unlockAudio() {
+  if (audioUnlocked) return;
+  // Create a silent buffer to unlock the audio context
+  triviaMusic.play().then(() => { triviaMusic.pause(); triviaMusic.currentTime = 0; }).catch(() => {});
+  cheerSound.play().then(() => { cheerSound.pause(); cheerSound.currentTime = 0; }).catch(() => {});
+  booSound.play().then(() => { booSound.pause(); booSound.currentTime = 0; }).catch(() => {});
+  audioUnlocked = true;
+  document.removeEventListener('click', unlockAudio);
+}
+document.addEventListener('click', unlockAudio);
+
+function playTriviaMusic() {
+  triviaMusic.currentTime = 0;
+  triviaMusic.play().catch(() => {});
+}
+
+function stopTriviaMusic() {
+  triviaMusic.pause();
+  triviaMusic.currentTime = 0;
+}
+
+function playSound(type) {
+  const sound = type === 'cheer' ? cheerSound : booSound;
+  sound.currentTime = 0;
+  sound.play().catch(() => {});
+}
 
 // =====================================================
 // GRANDMA PHOTO ROTATION
