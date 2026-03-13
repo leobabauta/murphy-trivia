@@ -617,6 +617,102 @@ input:focus {
   margin-bottom: 0.2rem;
 }
 
+/* ===== GEAR ICON (presenter) ===== */
+.gear-btn {
+  background: none;
+  border: none;
+  color: var(--white-dim);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.3rem;
+  transition: color 0.2s, transform 0.3s;
+  line-height: 1;
+}
+.gear-btn:hover { color: var(--gold); transform: rotate(90deg); }
+
+/* ===== MANAGE PLAYERS SCREEN ===== */
+#manage-screen {
+  padding: 2rem;
+  justify-content: flex-start;
+  align-items: center;
+}
+.manage-container {
+  width: 100%;
+  max-width: 600px;
+}
+.manage-container h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 1.5rem;
+}
+.manage-back {
+  background: none;
+  border: none;
+  color: var(--blue);
+  cursor: pointer;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0;
+}
+.manage-back:hover { color: var(--gold); }
+.manage-player-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: var(--navy-light);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.6rem;
+}
+.manage-player-row input {
+  flex: 1;
+  background: var(--navy-dark);
+  border: 1px solid rgba(126,184,218,0.3);
+  border-radius: 4px;
+  color: var(--white);
+  font-size: 1rem;
+  padding: 0.5rem 0.7rem;
+  font-family: inherit;
+}
+.manage-player-row input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+.manage-score-input {
+  width: 70px !important;
+  flex: 0 0 70px !important;
+  text-align: center;
+}
+.manage-save-btn {
+  background: var(--blue);
+  color: var(--navy-dark);
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.manage-save-btn:hover { background: var(--gold); }
+.manage-remove-btn {
+  background: none;
+  border: none;
+  color: var(--coral);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.3rem;
+  opacity: 0.7;
+}
+.manage-remove-btn:hover { opacity: 1; }
+.manage-saved {
+  color: var(--gold);
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.manage-saved.show { opacity: 1; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   h1.title { font-size: 2rem; }
@@ -845,7 +941,10 @@ input:focus {
     <div class="fancy-title" style="font-size:2.4rem;margin-bottom:0;letter-spacing:0.1em;line-height:1;" aria-label="You Don't Know Grandma">
       <span class="c-gold">Y</span><span class="c-coral filled">o</span><span class="c-white">u</span><span class="space"> </span><span class="c-blue filled">D</span><span class="c-gold">o</span><span class="c-coral filled">n</span><span class="c-white">'</span><span class="c-blue">t</span><span class="space"> </span><span class="c-gold filled">K</span><span class="c-coral">n</span><span class="c-white filled">o</span><span class="c-blue">w</span><span class="space"> </span><span class="c-gold">G</span><span class="c-coral filled">r</span><span class="c-white">a</span><span class="c-blue filled">n</span><span class="c-gold">d</span><span class="c-coral filled">m</span><span class="c-white">a</span>
     </div>
-    <span id="progress-text" onclick="presenterResetPrompt()">Q 1/10</span>
+    <div style="display:flex;align-items:center;gap:0.8rem;">
+      <span id="progress-text" onclick="presenterResetPrompt()">Q 1/10</span>
+      <button class="gear-btn" id="gear-btn" style="display:none" onclick="openManagePlayers()" title="Manage Players">&#9881;</button>
+    </div>
   </div>
 
   <div class="game-content">
@@ -885,6 +984,15 @@ input:focus {
 
   <div class="scoreboard-bar" id="scoreboard-bar">
     <span class="sb-label">Scores</span>
+  </div>
+</div>
+
+<!-- ========== MANAGE PLAYERS SCREEN (presenter only) ========== -->
+<div id="manage-screen" class="screen">
+  <div class="manage-container">
+    <button class="manage-back" onclick="closeManagePlayers()">&larr; Back to game</button>
+    <h2>Manage Players</h2>
+    <div id="manage-players-list"></div>
   </div>
 </div>
 
@@ -1269,7 +1377,9 @@ function enterGame() {
   showScreen('game-screen');
 
   document.getElementById('presenter-panel').style.display = 'flex';
-  if (!isPresenter) {
+  if (isPresenter) {
+    document.getElementById('gear-btn').style.display = 'inline-block';
+  } else {
     document.querySelector('.panel-footer').style.display = 'none';
   }
 
@@ -1670,6 +1780,73 @@ function confirmReset() {
     db.ref('players').update(updates);
   });
   showScreen('lobby-screen');
+}
+
+// =====================================================
+// MANAGE PLAYERS (presenter only)
+// =====================================================
+let manageReturnScreen = 'game-screen';
+
+function openManagePlayers() {
+  if (!isPresenter) return;
+  // Remember which screen we came from
+  const activeScreen = document.querySelector('.screen.active');
+  if (activeScreen) manageReturnScreen = activeScreen.id;
+
+  showScreen('manage-screen');
+  loadManagePlayers();
+}
+
+function closeManagePlayers() {
+  showScreen(manageReturnScreen);
+}
+
+function loadManagePlayers() {
+  db.ref('players').once('value', snap => {
+    const listEl = document.getElementById('manage-players-list');
+    listEl.innerHTML = '';
+    const players = snap.val() || {};
+
+    const sorted = Object.entries(players).sort((a, b) => (b[1].score || 0) - (a[1].score || 0));
+
+    sorted.forEach(([id, player]) => {
+      const row = document.createElement('div');
+      row.className = 'manage-player-row';
+      row.innerHTML = `
+        <input type="text" value="${escapeHtml(player.name)}" data-id="${id}" class="manage-name-input" placeholder="Name">
+        <input type="number" value="${player.score || 0}" data-id="${id}" class="manage-score-input" placeholder="Score">
+        <button class="manage-save-btn" onclick="savePlayer('${id}', this)">Save</button>
+        <span class="manage-saved" id="saved-${id}">Saved!</span>
+        <button class="manage-remove-btn" onclick="removePlayerManage('${id}')" title="Remove player">&times;</button>
+      `;
+      listEl.appendChild(row);
+    });
+
+    if (sorted.length === 0) {
+      listEl.innerHTML = '<p style="color:var(--white-dim);">No players have joined yet.</p>';
+    }
+  });
+}
+
+function savePlayer(id, btnEl) {
+  const row = btnEl.closest('.manage-player-row');
+  const name = row.querySelector('.manage-name-input').value.trim();
+  const score = parseInt(row.querySelector('.manage-score-input').value) || 0;
+
+  if (!name) return;
+
+  db.ref(`players/${id}`).update({ name, score });
+
+  const saved = document.getElementById(`saved-${id}`);
+  saved.classList.add('show');
+  setTimeout(() => saved.classList.remove('show'), 1500);
+}
+
+function removePlayerManage(id) {
+  if (confirm('Remove this player?')) {
+    db.ref(`players/${id}`).remove();
+    loadManagePlayers();
+  }
 }
 
 // =====================================================
