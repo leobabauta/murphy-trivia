@@ -622,18 +622,20 @@ input:focus {
   margin-bottom: 0.2rem;
 }
 
-/* ===== GEAR ICON (presenter) ===== */
-.gear-btn {
+/* ===== PRESENTER ICON BUTTONS ===== */
+.icon-btn {
   background: none;
   border: none;
-  color: var(--white-dim);
-  font-size: 1.5rem;
   cursor: pointer;
   padding: 0.3rem;
-  transition: color 0.2s, transform 0.3s;
+  transition: opacity 0.2s;
   line-height: 1;
+  opacity: 0.4;
+  display: flex;
+  align-items: center;
 }
-.gear-btn:hover { color: var(--gold); transform: rotate(90deg); }
+.icon-btn:hover { opacity: 0.8; }
+.icon-btn svg { width: 18px; height: 18px; stroke: var(--white-dim); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ===== MANAGE PLAYERS SCREEN ===== */
 #manage-screen {
@@ -944,8 +946,8 @@ input:focus {
     </div>
     <div style="display:flex;align-items:center;gap:0.8rem;">
       <span id="progress-text" onclick="presenterResetPrompt()">Q 1/10</span>
-      <button class="gear-btn" id="mute-btn" style="display:none" onclick="toggleMute()" title="Mute/Unmute sounds for all">&#128266;</button>
-      <button class="gear-btn" id="gear-btn" style="display:none" onclick="openManagePlayers()" title="Manage Players">&#9881;</button>
+      <button class="icon-btn" id="mute-btn" style="display:none" onclick="toggleMute()" title="Mute/Unmute sounds for all"><svg id="mute-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></button>
+      <button class="icon-btn" id="gear-btn" style="display:none" onclick="openManagePlayers()" title="Manage Players"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
   </div>
 
@@ -1241,7 +1243,14 @@ function initFirebase() {
   db.ref('muted').on('value', snap => {
     globalMuted = !!snap.val();
     const muteBtn = document.getElementById('mute-btn');
-    if (muteBtn) muteBtn.textContent = globalMuted ? '\u{1F507}' : '\u{1F50A}';
+    const muteIcon = document.getElementById('mute-icon');
+    if (muteIcon) {
+      if (globalMuted) {
+        muteIcon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
+      } else {
+        muteIcon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>';
+      }
+    }
     if (globalMuted) stopTriviaMusic();
   });
 }
