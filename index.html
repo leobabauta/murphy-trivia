@@ -87,7 +87,7 @@ h1.title {
   font-size: 1rem;
 }
 
-input[type="text"], input[type="password"] {
+input[type="text"], input[type="password"], input[type="email"] {
   width: 100%;
   padding: 0.8rem 1rem;
   border: 1px solid var(--blue);
@@ -857,6 +857,89 @@ input:focus {
   from { opacity: 0; transform: translateY(25px); }
   to { opacity: 1; transform: translateY(0); }
 }
+/* ===== ABOUT YOU & SOLO MODE ===== */
+textarea {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--blue);
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  margin-bottom: 0.5rem;
+  background: rgba(126,184,218,0.08);
+  color: var(--white);
+  resize: vertical;
+  min-height: 80px;
+}
+textarea::placeholder { color: var(--white-dim); }
+textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  background: rgba(232,168,56,0.08);
+}
+
+.about-questions-container {
+  width: 100%;
+  max-width: 560px;
+  margin-bottom: 1.5rem;
+}
+.about-question-card {
+  background: transparent;
+  border: 1px solid var(--blue);
+  border-radius: 4px;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 1rem;
+}
+.about-question-card .about-q-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+.about-question-card .about-q-text {
+  font-size: 1.1rem;
+  color: var(--white);
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 12px;
+  background: rgba(126,184,218,0.15);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 6px;
+  transition: width 0.6s ease;
+  width: 0%;
+}
+
+.fun-fact-display {
+  max-width: 600px;
+  text-align: center;
+  margin-top: 1.2rem;
+  padding: 1rem 1.5rem;
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  background: rgba(232,168,56,0.08);
+  color: var(--gold);
+  font-size: 1.05rem;
+  font-style: italic;
+  display: none;
+}
+.fun-fact-display.visible { display: block; }
+
+#solo-next-btn {
+  margin-top: 1.2rem;
+  display: none;
+}
+#solo-next-btn.visible { display: inline-block; }
 </style>
 </head>
 <body>
@@ -897,8 +980,24 @@ input:focus {
   <div class="deco deco-dot" style="--c:var(--white);--sz:5px;bottom:35%;right:3%"></div>
 </div>
 
-<!-- ========== JOIN SCREEN ========== -->
-<div id="join-screen" class="screen active">
+<!-- ========== SIGN IN SCREEN (solo mode) ========== -->
+<div id="signin-screen" class="screen active">
+  <div class="fancy-title" aria-label="You Don't Know Grandma">
+    <span class="c-gold">Y</span><span class="c-coral filled">o</span><span class="c-white">u</span><span class="space"> </span><span class="c-blue filled">D</span><span class="c-gold">o</span><span class="c-coral filled">n</span><span class="c-white">'</span><span class="c-blue">t</span><span class="line-break"></span><span class="c-gold filled">K</span><span class="c-coral">n</span><span class="c-white filled">o</span><span class="c-blue">w</span><span class="space"> </span><span class="c-gold">G</span><span class="c-coral filled">r</span><span class="c-white">a</span><span class="c-blue filled">n</span><span class="c-gold">d</span><span class="c-coral filled">m</span><span class="c-white">a</span>
+  </div>
+  <p class="subtitle">A trivia game in memory of Marion Murphy</p>
+
+  <div class="card" style="max-width:420px;">
+    <h2>Sign In to Play</h2>
+    <input type="text" id="signin-name" placeholder="Your name">
+    <input type="email" id="signin-email" placeholder="Your email">
+    <button class="btn btn-primary" style="width:100%" onclick="signIn()">Continue</button>
+    <p class="error-msg" id="signin-error" style="display:none"></p>
+  </div>
+</div>
+
+<!-- ========== JOIN SCREEN (multiplayer mode) ========== -->
+<div id="join-screen" class="screen">
   <div class="fancy-title" aria-label="You Don't Know Grandma">
     <span class="c-gold">Y</span><span class="c-coral filled">o</span><span class="c-white">u</span><span class="space"> </span><span class="c-blue filled">D</span><span class="c-gold">o</span><span class="c-coral filled">n</span><span class="c-white">'</span><span class="c-blue">t</span><span class="line-break"></span><span class="c-gold filled">K</span><span class="c-coral">n</span><span class="c-white filled">o</span><span class="c-blue">w</span><span class="space"> </span><span class="c-gold">G</span><span class="c-coral filled">r</span><span class="c-white">a</span><span class="c-blue filled">n</span><span class="c-gold">d</span><span class="c-coral filled">m</span><span class="c-white">a</span>
   </div>
@@ -966,6 +1065,8 @@ input:focus {
       </div>
       <div class="player-score-display" id="player-score"></div>
       <div class="waiting-msg" id="waiting-msg" style="display:none">Waiting for next question...</div>
+      <div class="fun-fact-display" id="fun-fact-display"></div>
+      <button class="btn btn-primary" id="solo-next-btn" onclick="soloNextQuestion()">Next Question</button>
     </div>
 
     <!-- Right panel: correct answers (visible to all) -->
@@ -1009,6 +1110,46 @@ input:focus {
   <div class="final-scores" id="final-scores"></div>
   <p class="subtitle" style="margin-top:1rem;">In memory of Marion Murphy</p>
   <button class="btn btn-primary" onclick="resetGame()">Play Again</button>
+</div>
+
+<!-- ========== ABOUT YOU: PRE-GAME ========== -->
+<div id="about-pre-screen" class="screen">
+  <h1 class="title" style="font-size:2.2rem;">Before We Play...</h1>
+  <p class="subtitle">Help us get to know you! Answer a few quick questions.</p>
+  <div class="about-questions-container" id="about-pre-questions"></div>
+  <button class="btn btn-primary" id="about-pre-submit" onclick="submitAboutAnswers('pre')">Continue to Trivia</button>
+  <p class="error-msg" id="about-pre-error" style="display:none"></p>
+</div>
+
+<!-- ========== ABOUT YOU: POST-GAME ========== -->
+<div id="about-post-screen" class="screen">
+  <h1 class="title" style="font-size:2.2rem;">A Few More About You...</h1>
+  <p class="subtitle">While it's fresh — tell us a bit more!</p>
+  <div class="about-questions-container" id="about-post-questions"></div>
+  <button class="btn btn-primary" id="about-post-submit" onclick="submitAboutAnswers('post')">See My Results</button>
+  <p class="error-msg" id="about-post-error" style="display:none"></p>
+</div>
+
+<!-- ========== DONE SCREEN ========== -->
+<div id="done-screen" class="screen">
+  <div class="fancy-title" style="font-size:3rem;" aria-label="Great Job!">
+    <span class="c-gold">G</span><span class="c-coral filled">r</span><span class="c-white">e</span><span class="c-blue filled">a</span><span class="c-gold">t</span><span class="space"> </span><span class="c-coral filled">J</span><span class="c-white">o</span><span class="c-blue filled">b</span><span class="c-gold">!</span>
+  </div>
+  <div class="card" style="max-width:500px;text-align:center;">
+    <h2>Grandma Marion Trivia</h2>
+    <p id="done-score" style="font-size:1.8rem;font-weight:800;color:var(--gold);margin-bottom:1rem;"></p>
+    <p id="done-score-msg" style="color:var(--white-dim);margin-bottom:1.5rem;"></p>
+  </div>
+  <div class="card" style="max-width:500px;text-align:center;">
+    <h2>Your Trivia Profile</h2>
+    <p style="color:var(--white-dim);margin-bottom:1rem;">We're collecting your answers to build a trivia game about YOU!</p>
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="done-progress-bar"></div>
+    </div>
+    <p id="done-progress-text" style="margin-top:0.8rem;color:var(--white);font-weight:600;"></p>
+    <p id="done-progress-msg" style="color:var(--white-dim);margin-top:0.5rem;font-size:0.95rem;"></p>
+  </div>
+  <button class="btn btn-primary" style="margin-top:1.5rem;" onclick="playAgainSolo()">Play Again</button>
 </div>
 
 <script>
@@ -1211,8 +1352,119 @@ const QUESTIONS = [
 ];
 
 // =====================================================
+// "ABOUT YOU" QUESTION BANK (100 questions)
+// =====================================================
+const ABOUT_QUESTIONS = [
+  { id: 0, category: "Childhood", question: "Where were you born?" },
+  { id: 1, category: "Childhood", question: "What is your earliest memory?" },
+  { id: 2, category: "Childhood", question: "What was your favorite toy or game as a kid?" },
+  { id: 3, category: "Childhood", question: "Did you have a childhood nickname? What was it?" },
+  { id: 4, category: "Childhood", question: "What was your favorite subject in school?" },
+  { id: 5, category: "Childhood", question: "Who was your best friend growing up?" },
+  { id: 6, category: "Childhood", question: "What did you want to be when you grew up?" },
+  { id: 7, category: "Childhood", question: "What's a funny or embarrassing story from your childhood?" },
+  { id: 8, category: "Childhood", question: "What was your favorite thing to do after school?" },
+  { id: 9, category: "Childhood", question: "Did you have any pets growing up? What were their names?" },
+  { id: 10, category: "Family", question: "What's a tradition in your family that you love?" },
+  { id: 11, category: "Family", question: "Who in your family are you most like, and why?" },
+  { id: 12, category: "Family", question: "What's the best advice a family member ever gave you?" },
+  { id: 13, category: "Family", question: "What's your favorite family vacation memory?" },
+  { id: 14, category: "Family", question: "What holiday does your family go all-out for?" },
+  { id: 15, category: "Family", question: "What's a dish that reminds you of home?" },
+  { id: 16, category: "Family", question: "Who in your family makes you laugh the most?" },
+  { id: 17, category: "Family", question: "What's something your parents always said to you?" },
+  { id: 18, category: "Family", question: "What's a family story that gets retold at every gathering?" },
+  { id: 19, category: "Family", question: "If you could relive one family moment, what would it be?" },
+  { id: 20, category: "Favorites", question: "What's your all-time favorite movie?" },
+  { id: 21, category: "Favorites", question: "What's a song that always makes you happy?" },
+  { id: 22, category: "Favorites", question: "What's your favorite book or one that changed your life?" },
+  { id: 23, category: "Favorites", question: "What's your comfort food?" },
+  { id: 24, category: "Favorites", question: "What's your favorite season, and why?" },
+  { id: 25, category: "Favorites", question: "What's your favorite way to spend a lazy Sunday?" },
+  { id: 26, category: "Favorites", question: "What's your favorite holiday and why?" },
+  { id: 27, category: "Favorites", question: "What's a TV show you could rewatch forever?" },
+  { id: 28, category: "Favorites", question: "What's your favorite animal?" },
+  { id: 29, category: "Favorites", question: "What's your favorite color and does it show up a lot in your life?" },
+  { id: 30, category: "Food & Cooking", question: "What's your signature dish to cook?" },
+  { id: 31, category: "Food & Cooking", question: "What food could you eat every day and never get tired of?" },
+  { id: 32, category: "Food & Cooking", question: "What's the most adventurous thing you've ever eaten?" },
+  { id: 33, category: "Food & Cooking", question: "Do you have a secret family recipe? What is it for?" },
+  { id: 34, category: "Food & Cooking", question: "What's a food you absolutely can't stand?" },
+  { id: 35, category: "Food & Cooking", question: "What's your go-to order at a restaurant?" },
+  { id: 36, category: "Food & Cooking", question: "Coffee, tea, or something else? How do you take it?" },
+  { id: 37, category: "Food & Cooking", question: "What's the best meal you've ever had?" },
+  { id: 38, category: "Food & Cooking", question: "What snack is always in your kitchen?" },
+  { id: 39, category: "Food & Cooking", question: "If you could only eat one cuisine for the rest of your life, what would it be?" },
+  { id: 40, category: "Travel & Adventure", question: "What's the most memorable place you've ever visited?" },
+  { id: 41, category: "Travel & Adventure", question: "Where in the world would you most like to go?" },
+  { id: 42, category: "Travel & Adventure", question: "What's the most adventurous thing you've ever done?" },
+  { id: 43, category: "Travel & Adventure", question: "Do you prefer mountains, beach, or city?" },
+  { id: 44, category: "Travel & Adventure", question: "What's a place that felt like home even though you'd never been there?" },
+  { id: 45, category: "Travel & Adventure", question: "What's the longest road trip you've taken?" },
+  { id: 46, category: "Travel & Adventure", question: "What's a funny travel story you love to tell?" },
+  { id: 47, category: "Travel & Adventure", question: "Have you ever gotten lost somewhere? What happened?" },
+  { id: 48, category: "Travel & Adventure", question: "What's your favorite thing about where you live now?" },
+  { id: 49, category: "Travel & Adventure", question: "If you could live anywhere for a year, where would it be?" },
+  { id: 50, category: "Career & Education", question: "What was your very first job?" },
+  { id: 51, category: "Career & Education", question: "What do you do for work, and do you enjoy it?" },
+  { id: 52, category: "Career & Education", question: "What's the most important thing you've learned from your career?" },
+  { id: 53, category: "Career & Education", question: "If money didn't matter, what would you do for a living?" },
+  { id: 54, category: "Career & Education", question: "Who has been your biggest mentor or professional influence?" },
+  { id: 55, category: "Career & Education", question: "What's a skill you're proud of that you taught yourself?" },
+  { id: 56, category: "Career & Education", question: "What's the hardest thing you've ever had to learn?" },
+  { id: 57, category: "Career & Education", question: "What accomplishment are you most proud of?" },
+  { id: 58, category: "Career & Education", question: "Did you go to college? What was your favorite thing about it?" },
+  { id: 59, category: "Career & Education", question: "What's something you know a lot about that might surprise people?" },
+  { id: 60, category: "Personality & Quirks", question: "Are you a morning person or a night owl?" },
+  { id: 61, category: "Personality & Quirks", question: "What's a weird habit or quirk you have?" },
+  { id: 62, category: "Personality & Quirks", question: "What's something that always makes you laugh?" },
+  { id: 63, category: "Personality & Quirks", question: "What are you irrationally afraid of?" },
+  { id: 64, category: "Personality & Quirks", question: "What's your most unpopular opinion?" },
+  { id: 65, category: "Personality & Quirks", question: "What's a hill you'll die on?" },
+  { id: 66, category: "Personality & Quirks", question: "How would your best friend describe you in three words?" },
+  { id: 67, category: "Personality & Quirks", question: "What's something you're bad at but enjoy doing anyway?" },
+  { id: 68, category: "Personality & Quirks", question: "Do you collect anything? What and why?" },
+  { id: 69, category: "Personality & Quirks", question: "What's a small thing that makes your day better?" },
+  { id: 70, category: "Hobbies & Interests", question: "What hobby could you talk about for hours?" },
+  { id: 71, category: "Hobbies & Interests", question: "What's something you've always wanted to learn?" },
+  { id: 72, category: "Hobbies & Interests", question: "What do you do to relax and unwind?" },
+  { id: 73, category: "Hobbies & Interests", question: "Are you into sports? Which ones — playing or watching?" },
+  { id: 74, category: "Hobbies & Interests", question: "What's a talent or skill you have that most people don't know about?" },
+  { id: 75, category: "Hobbies & Interests", question: "What's the last thing you got really excited about?" },
+  { id: 76, category: "Hobbies & Interests", question: "Do you play any musical instruments?" },
+  { id: 77, category: "Hobbies & Interests", question: "What's a hobby you picked up as an adult?" },
+  { id: 78, category: "Hobbies & Interests", question: "What game (board game, video game, card game) do you love?" },
+  { id: 79, category: "Hobbies & Interests", question: "What's your go-to karaoke song?" },
+  { id: 80, category: "Life Stories", question: "What's the bravest thing you've ever done?" },
+  { id: 81, category: "Life Stories", question: "What's a moment that completely changed your life?" },
+  { id: 82, category: "Life Stories", question: "What's the kindest thing someone has done for you?" },
+  { id: 83, category: "Life Stories", question: "What's a mistake you made that taught you a big lesson?" },
+  { id: 84, category: "Life Stories", question: "What's something you did that surprised even yourself?" },
+  { id: 85, category: "Life Stories", question: "Who has had the biggest influence on the person you are today?" },
+  { id: 86, category: "Life Stories", question: "What's a challenge you overcame that you're proud of?" },
+  { id: 87, category: "Life Stories", question: "What's the funniest thing that's ever happened to you?" },
+  { id: 88, category: "Life Stories", question: "What's something you wish you'd started doing sooner?" },
+  { id: 89, category: "Life Stories", question: "What's a promise you've made to yourself?" },
+  { id: 90, category: "Dreams & Values", question: "What do you value most in a friendship?" },
+  { id: 91, category: "Dreams & Values", question: "If you could have dinner with anyone, living or dead, who would it be?" },
+  { id: 92, category: "Dreams & Values", question: "What's on your bucket list?" },
+  { id: 93, category: "Dreams & Values", question: "What's a cause or issue you care deeply about?" },
+  { id: 94, category: "Dreams & Values", question: "What do you hope people remember about you?" },
+  { id: 95, category: "Dreams & Values", question: "What advice would you give your younger self?" },
+  { id: 96, category: "Dreams & Values", question: "What's your definition of a life well-lived?" },
+  { id: 97, category: "Dreams & Values", question: "What are you most grateful for right now?" },
+  { id: 98, category: "Dreams & Values", question: "If you could master any skill overnight, what would it be?" },
+  { id: 99, category: "Dreams & Values", question: "What's one thing you want your family to always know about you?" },
+];
+
+const ABOUT_QUESTIONS_PER_PHASE = 5;
+const ABOUT_ANSWERS_NEEDED = 20;
+
+// =====================================================
 // APP STATE
 // =====================================================
+const GAME_MODE = new URLSearchParams(window.location.search).get('mode') === 'multiplayer' ? 'multiplayer' : 'solo';
+
 let db;
 let myPlayerId = null;
 let isPresenter = false;
@@ -1220,6 +1472,16 @@ let timerInterval = null;
 let serverTimeOffset = 0;
 let questionOrder = null;
 const LETTERS = ['A', 'B', 'C', 'D'];
+
+// Solo mode state
+let currentVisitorId = null;
+let currentVisitorName = '';
+let currentVisitorData = null;
+let soloScore = 0;
+let soloCurrentQuestion = 0;
+let soloQuestionOrder = null;
+let aboutPreQuestionIds = [];
+let aboutPostQuestionIds = [];
 
 // Map from display index to actual question
 function getQuestion(displayIndex) {
@@ -2247,15 +2509,347 @@ function advanceGrandmaPhoto() {
 }
 
 // =====================================================
+// SIGN IN (solo mode)
+// =====================================================
+function signIn() {
+  const name = document.getElementById('signin-name').value.trim();
+  const email = document.getElementById('signin-email').value.trim().toLowerCase();
+
+  const nameError = validateName(name);
+  if (nameError) {
+    showError('signin-error', nameError);
+    return;
+  }
+  if (!email || !email.includes('@') || !email.includes('.')) {
+    showError('signin-error', 'Please enter a valid email address.');
+    return;
+  }
+
+  // Look up user by email
+  db.ref('users').orderByChild('email').equalTo(email).once('value', snap => {
+    const users = snap.val();
+    if (users) {
+      // Existing user
+      const id = Object.keys(users)[0];
+      currentVisitorId = id;
+      currentVisitorData = users[id];
+      currentVisitorName = name;
+      if (users[id].name !== name) {
+        db.ref(`users/${id}/name`).set(name);
+      }
+      localStorage.setItem('gt_visitorId', id);
+      localStorage.setItem('gt_visitorEmail', email);
+      startAboutPhase('pre');
+    } else {
+      // New user
+      const ref = db.ref('users').push();
+      currentVisitorId = ref.key;
+      currentVisitorName = name;
+      currentVisitorData = { name, email, gamesPlayed: 0 };
+      ref.set({ name, email, createdAt: firebase.database.ServerValue.TIMESTAMP, gamesPlayed: 0 });
+      localStorage.setItem('gt_visitorId', currentVisitorId);
+      localStorage.setItem('gt_visitorEmail', email);
+      startAboutPhase('pre');
+    }
+  });
+}
+
+// =====================================================
+// ABOUT YOU FLOW
+// =====================================================
+function getUnansweredQuestionIds(aboutAnswers) {
+  const answered = aboutAnswers ? Object.keys(aboutAnswers).map(Number) : [];
+  return ABOUT_QUESTIONS.filter(q => !answered.includes(q.id)).map(q => q.id);
+}
+
+function pickRandomQuestions(ids, count) {
+  const shuffled = [...ids];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, count);
+}
+
+function startAboutPhase(phase) {
+  db.ref(`users/${currentVisitorId}`).once('value', snap => {
+    currentVisitorData = snap.val() || currentVisitorData;
+    const unanswered = getUnansweredQuestionIds(currentVisitorData.aboutAnswers);
+
+    if (unanswered.length === 0) {
+      if (phase === 'pre') {
+        startSoloGame();
+      } else {
+        showDoneScreen();
+      }
+      return;
+    }
+
+    const count = Math.min(ABOUT_QUESTIONS_PER_PHASE, unanswered.length);
+    const selectedIds = pickRandomQuestions(unanswered, count);
+
+    if (phase === 'pre') {
+      aboutPreQuestionIds = selectedIds;
+      renderAboutQuestions('pre', selectedIds);
+      showScreen('about-pre-screen');
+    } else {
+      aboutPostQuestionIds = selectedIds;
+      renderAboutQuestions('post', selectedIds);
+      showScreen('about-post-screen');
+    }
+  });
+}
+
+function renderAboutQuestions(phase, questionIds) {
+  const container = document.getElementById(`about-${phase}-questions`);
+  container.innerHTML = '';
+  questionIds.forEach((qId, i) => {
+    const q = ABOUT_QUESTIONS[qId];
+    const card = document.createElement('div');
+    card.className = 'about-question-card';
+    card.innerHTML = `
+      <div class="about-q-label">${escapeHtml(q.category)} — Question ${i + 1} of ${questionIds.length}</div>
+      <div class="about-q-text">${escapeHtml(q.question)}</div>
+      <textarea id="about-${phase}-${qId}" placeholder="Your answer..."></textarea>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function submitAboutAnswers(phase) {
+  const questionIds = phase === 'pre' ? aboutPreQuestionIds : aboutPostQuestionIds;
+  const answers = {};
+  let allFilled = true;
+
+  questionIds.forEach(qId => {
+    const textarea = document.getElementById(`about-${phase}-${qId}`);
+    const answer = textarea ? textarea.value.trim() : '';
+    if (!answer) {
+      allFilled = false;
+    } else {
+      answers[qId] = { answer, answeredAt: firebase.database.ServerValue.TIMESTAMP };
+    }
+  });
+
+  if (!allFilled) {
+    showError(`about-${phase}-error`, 'Please answer all questions before continuing.');
+    return;
+  }
+
+  const updates = {};
+  Object.entries(answers).forEach(([qId, data]) => {
+    updates[`users/${currentVisitorId}/aboutAnswers/${qId}`] = data;
+  });
+
+  db.ref().update(updates).then(() => {
+    if (phase === 'pre') {
+      startSoloGame();
+    } else {
+      db.ref(`users/${currentVisitorId}/gamesPlayed`).transaction(count => (count || 0) + 1);
+      showDoneScreen();
+    }
+  });
+}
+
+// =====================================================
+// SOLO GAME
+// =====================================================
+function startSoloGame() {
+  soloScore = 0;
+  soloCurrentQuestion = 0;
+
+  // Shuffle questions
+  soloQuestionOrder = Array.from({length: QUESTIONS.length}, (_, i) => i);
+  for (let i = soloQuestionOrder.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [soloQuestionOrder[i], soloQuestionOrder[j]] = [soloQuestionOrder[j], soloQuestionOrder[i]];
+  }
+
+  showScreen('game-screen');
+
+  // Hide multiplayer elements
+  document.getElementById('presenter-panel').style.display = 'none';
+  document.getElementById('scoreboard-bar').style.display = 'none';
+  document.getElementById('timer-below').style.display = 'none';
+  document.getElementById('mute-btn').style.display = 'none';
+  document.getElementById('gear-btn').style.display = 'none';
+  document.getElementById('waiting-msg').style.display = 'none';
+  document.getElementById('player-score').style.display = 'none';
+
+  renderSoloQuestion();
+}
+
+function getSoloQuestion(displayIndex) {
+  return QUESTIONS[soloQuestionOrder[displayIndex]];
+}
+
+function renderSoloQuestion() {
+  if (soloCurrentQuestion >= QUESTIONS.length) {
+    startAboutPhase('post');
+    return;
+  }
+
+  const q = getSoloQuestion(soloCurrentQuestion);
+  document.getElementById('progress-text').textContent = `Q ${soloCurrentQuestion + 1}/${QUESTIONS.length}`;
+  document.getElementById('progress-text').onclick = null;
+  document.getElementById('q-category').textContent = q.category;
+  document.getElementById('q-text').textContent = q.question;
+
+  // Hide fun fact and next button
+  const funFactEl = document.getElementById('fun-fact-display');
+  funFactEl.classList.remove('visible');
+  funFactEl.textContent = '';
+  document.getElementById('solo-next-btn').classList.remove('visible');
+
+  const choicesEl = document.getElementById('q-choices');
+  choicesEl.innerHTML = '';
+  q.choices.forEach((c, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'choice-btn';
+    btn.id = `choice-${i}`;
+    btn.innerHTML = `<span class="letter">${LETTERS[i]}.</span> ${escapeHtml(c)}`;
+    btn.addEventListener('click', () => soloSubmitAnswer(i));
+    choicesEl.appendChild(btn);
+  });
+
+  advanceGrandmaPhoto();
+
+  const area = document.getElementById('question-area');
+  area.classList.remove('slide-in');
+  void area.offsetWidth;
+  area.classList.add('slide-in');
+}
+
+function soloSubmitAnswer(choiceIndex) {
+  const q = getSoloQuestion(soloCurrentQuestion);
+
+  // Check if already answered
+  const allBtns = document.querySelectorAll('.choice-btn');
+  for (const b of allBtns) {
+    if (b.classList.contains('selected') || b.classList.contains('correct') || b.classList.contains('wrong')) return;
+  }
+
+  const btn = document.getElementById(`choice-${choiceIndex}`);
+  const isCorrect = choiceIndex === q.answer;
+
+  allBtns.forEach(b => b.classList.add('locked'));
+  btn.classList.add('selected');
+
+  if (isCorrect) {
+    btn.classList.remove('selected');
+    btn.classList.add('correct');
+    soloScore++;
+    launchConfetti(btn);
+    showFloatMsg(true);
+    playSound('cheer');
+  } else {
+    btn.classList.add('wrong');
+    document.getElementById(`choice-${q.answer}`).classList.add('correct');
+    showFloatMsg(false);
+    playSound('boo');
+  }
+
+  // Show fun fact
+  const funFactEl = document.getElementById('fun-fact-display');
+  funFactEl.textContent = q.funFact;
+  funFactEl.classList.add('visible');
+
+  // Show next button
+  const nextBtn = document.getElementById('solo-next-btn');
+  nextBtn.textContent = soloCurrentQuestion < QUESTIONS.length - 1 ? 'Next Question' : 'Continue';
+  nextBtn.classList.add('visible');
+}
+
+function soloNextQuestion() {
+  soloCurrentQuestion++;
+  renderSoloQuestion();
+}
+
+// =====================================================
+// DONE SCREEN
+// =====================================================
+function showDoneScreen() {
+  showScreen('done-screen');
+
+  document.getElementById('done-score').textContent = `${soloScore} / ${QUESTIONS.length}`;
+
+  const pct = soloScore / QUESTIONS.length;
+  let msg = '';
+  if (pct === 1) msg = "Perfect score! You REALLY know Grandma!";
+  else if (pct >= 0.8) msg = "Impressive! Marion would be so proud of you.";
+  else if (pct >= 0.6) msg = "Not bad! You know Grandma pretty well.";
+  else if (pct >= 0.4) msg = "Room for improvement — but Grandma still loves you!";
+  else msg = "You DON'T know Grandma... yet! Play again to learn more.";
+  document.getElementById('done-score-msg').textContent = msg;
+
+  db.ref(`users/${currentVisitorId}/aboutAnswers`).once('value', snap => {
+    const answers = snap.val() || {};
+    const answeredCount = Object.keys(answers).length;
+    const progressPct = Math.min(100, Math.round((answeredCount / ABOUT_ANSWERS_NEEDED) * 100));
+
+    document.getElementById('done-progress-bar').style.width = progressPct + '%';
+    document.getElementById('done-progress-text').textContent = `${answeredCount} / ${ABOUT_QUESTIONS.length} questions answered`;
+
+    if (answeredCount >= ABOUT_ANSWERS_NEEDED) {
+      document.getElementById('done-progress-msg').textContent =
+        `We have enough to create "${currentVisitorName} Trivia"! Coming soon.`;
+      document.getElementById('done-progress-msg').style.color = 'var(--gold)';
+    } else {
+      const remaining = ABOUT_ANSWERS_NEEDED - answeredCount;
+      document.getElementById('done-progress-msg').textContent =
+        `${remaining} more answer${remaining === 1 ? '' : 's'} until we can create your own trivia game!`;
+    }
+  });
+
+  setTimeout(() => {
+    if (pct >= 0.7) {
+      const scoreEl = document.getElementById('done-score');
+      launchConfetti(scoreEl);
+    }
+  }, 300);
+}
+
+function playAgainSolo() {
+  startAboutPhase('pre');
+}
+
+// =====================================================
 // BOOT
 // =====================================================
 initFirebase();
 
-// Restore presenter session on refresh
-if (localStorage.getItem('gt_isPresenter') === 'true') {
-  isPresenter = true;
-  enterLobby();
+if (GAME_MODE === 'multiplayer') {
+  // Multiplayer mode — hide solo screens, show multiplayer join
+  document.getElementById('signin-screen').classList.remove('active');
+  document.getElementById('join-screen').classList.add('active');
+
+  if (localStorage.getItem('gt_isPresenter') === 'true') {
+    isPresenter = true;
+    enterLobby();
+  }
+} else {
+  // Solo mode — check for existing session and pre-fill
+  const savedId = localStorage.getItem('gt_visitorId');
+  if (savedId) {
+    db.ref(`users/${savedId}`).once('value', snap => {
+      if (snap.exists()) {
+        currentVisitorId = savedId;
+        currentVisitorData = snap.val();
+        currentVisitorName = currentVisitorData.name;
+        document.getElementById('signin-name').value = currentVisitorData.name;
+        document.getElementById('signin-email').value = currentVisitorData.email || localStorage.getItem('gt_visitorEmail') || '';
+      }
+    });
+  }
 }
+
+// Enter key support for sign-in fields
+document.getElementById('signin-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('signin-email').focus();
+});
+document.getElementById('signin-email').addEventListener('keydown', e => {
+  if (e.key === 'Enter') signIn();
+});
 </script>
 
 </body>
