@@ -1758,11 +1758,13 @@ function matchFamilyMember(name) {
   return null;
 }
 
-// Great-grandchildren (gen 3) who are adults and can consent for themselves
-const ADULT_GREAT_GRANDCHILDREN = [
-  'ethan-c', 'zoey-c', 'leland-jr', 'haani', 'sierra',
-  'cordelia', 'samantha', 'lennon', 'isabella', 'blake',
-  'chloe', 'justin', 'rain', 'maia', 'isaiah', 'noelle'
+// Great-grandchildren (gen 3) who are minors and need parent consent
+// All gen 4 (great-great-grandchildren) also need parent consent
+const MINOR_GREAT_GRANDCHILDREN = [
+  'marion-f', 'london-f', 'aura', 'zephyr', 'rohan',
+  'nicolas', 'rhea', 'soraya', 'van-ethan', 'ronin',
+  'joey-lucia', 'lucas-l', 'cameron-l', 'kinsley', 'tatum', 'beau',
+  'kaya', 'indy', 'lillian', 'roman', 'wesley'
 ];
 
 function canConsentFor(playerId, familyMemberId) {
@@ -1771,7 +1773,7 @@ function canConsentFor(playerId, familyMemberId) {
   // Great-great-grandchild (gen 4) — always needs parent consent
   if (member.gen === 4) return true;
   // Great-grandchild (gen 3) who is a minor — needs parent consent
-  if (member.gen === 3 && !ADULT_GREAT_GRANDCHILDREN.includes(familyMemberId)) return true;
+  if (member.gen === 3 && MINOR_GREAT_GRANDCHILDREN.includes(familyMemberId)) return true;
   return false;
 }
 
