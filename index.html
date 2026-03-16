@@ -1648,6 +1648,9 @@ const FAMILY_TREE = {
   "olivia-joy": { name: "Olivia Joy Bettis", gen: 4, parent: "leland-jr", searchNames: ["olivia", "olivia joy", "olivia bettis"] },
   "isla": { name: "Isla Bettis", gen: 4, parent: "leland-jr", searchNames: ["isla", "isla bettis"] },
   "weston": { name: "Weston Bettis", gen: 4, parent: "leland-jr", searchNames: ["weston", "weston bettis"] },
+  // Spouses married into the family
+  "randy": { name: "Randy Smith", gen: 1, parent: null, spouseOf: "erin", searchNames: ["randy", "randy smith", "randall smith"] },
+  "eva": { name: "Eva Babauta", gen: 2, parent: null, spouseOf: "leo", searchNames: ["eva", "eva babauta", "eva cruz", "eva cruz babauta"] },
   // Extended family — Murphy cousins (generation 1)
   "pat": { name: "Pat Murphy", gen: 1, parent: null, searchNames: ["pat murphy", "pat"] },
   "michelle": { name: "Michelle Murphy", gen: 1, parent: null, searchNames: ["michelle murphy", "michelle", "michelle perkins"] },
@@ -1695,14 +1698,20 @@ const EMAIL_TO_FAMILY = {
   "alicecbraden@gmail.com": "alice-b",
   "murphyperkins@gmail.com": "michelle",
   "charlene.pagan@comcast.net": "charlene",
+  "randallmsmith488@yahoo.com": "randy",
+  "eva.babauta@gmail.com": "eva",
 };
 
 // =====================================================
 // FAMILY TREE HELPERS
 // =====================================================
 function getFamilyChildren(memberId) {
+  const member = FAMILY_TREE[memberId];
+  // If this is a spouse, also include children of their spouse
+  const parentIds = [memberId];
+  if (member && member.spouseOf) parentIds.push(member.spouseOf);
   return Object.entries(FAMILY_TREE)
-    .filter(([_, m]) => m.parent === memberId)
+    .filter(([_, m]) => parentIds.includes(m.parent))
     .map(([id, m]) => ({ id, ...m }));
 }
 
