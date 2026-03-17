@@ -4316,12 +4316,20 @@ function submitFamilyDirectAnswers() {
       successEl.textContent = `Saved! Thanks for sharing about ${firstName}.`;
     }
     successEl.style.display = 'block';
-    document.getElementById('answer-family-actions').querySelector('.btn').style.display = 'none';
+    const actionsEl = document.getElementById('answer-family-actions');
+    actionsEl.querySelector('.btn-primary').style.display = 'none';
     // Disable textareas
     answerFamilyQuestionIds.forEach(qId => {
       const ta = document.getElementById(`af-${qId}`);
       if (ta) ta.disabled = true;
     });
+    // Show "Answer More" button
+    const moreBtn = document.createElement('button');
+    moreBtn.className = 'btn btn-primary';
+    moreBtn.style.marginTop = '1rem';
+    moreBtn.textContent = 'Answer More Questions';
+    moreBtn.onclick = () => loadFamilyQuestions();
+    actionsEl.appendChild(moreBtn);
   });
 }
 
