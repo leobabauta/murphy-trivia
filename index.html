@@ -3638,56 +3638,79 @@ function buildAboutItems(phase, selfUnanswered, optedInMemberIds) {
   const items = [];
   const total = ABOUT_QUESTIONS_PER_PHASE;
 
-  if (currentOptedIn && selfUnanswered.length > 0 && optedInMemberIds.length > 0) {
-    // Mix: ~half self, ~half family
-    const selfCount = Math.ceil(total / 2);
-    const familyCount = total - selfCount;
-    const selfPicks = pickRandom(selfUnanswered, selfCount);
-    selfPicks.forEach(qId => items.push({ type: 'self', questionId: qId }));
-    addFamilyItems(items, familyCount, optedInMemberIds);
-  } else if (currentOptedIn && selfUnanswered.length > 0) {
-    // Only self questions
-    const selfPicks = pickRandom(selfUnanswered, total);
-    selfPicks.forEach(qId => items.push({ type: 'self', questionId: qId }));
-  } else if (optedInMemberIds.length > 0) {
-    // Only family questions (user opted out or answered all self questions)
-    addFamilyItems(items, total, optedInMemberIds);
-  }
+  // Load existing family answers to avoid asking already-answered questions
+  const familyAnswerPromises = optedInMemberIds.map(id =>
+    new Promise(resolve => {
+      db.ref(`familyAnswers/${id}`).once('value', snap => {
+        resolve({ id, answeredQIds: snap.val() ? Object.keys(snap.val()).map(Number) : [] });
+      });
+    })
+  );
 
-  if (items.length === 0) {
-    if (phase === 'pre') startSoloGame();
-    else showDoneScreen();
-    return;
-  }
+  Promise.all(familyAnswerPromises).then(familyAnswerData => {
+    const answeredByMember = {};
+    familyAnswerData.forEach(d => { answeredByMember[d.id] = d.answeredQIds; });
 
-  if (phase === 'pre') {
-    aboutPreItems = items;
-    renderMixedAboutQuestions('pre', items);
-    const nameEl = document.getElementById('about-pre-name-display');
-    if (nameEl) nameEl.textContent = currentVisitorName;
-    showScreen('about-pre-screen');
-  } else {
-    aboutPostItems = items;
-    renderMixedAboutQuestions('post', items);
-    showScreen('about-post-screen');
-  }
+    if (currentOptedIn && selfUnanswered.length > 0 && optedInMemberIds.length > 0) {
+      const selfCount = Math.ceil(total / 2);
+      const familyCount = total - selfCount;
+      const selfPicks = pickRandom(selfUnanswered, selfCount);
+      selfPicks.forEach(qId => items.push({ type: 'self', questionId: qId }));
+      addFamilyItems(items, familyCount, optedInMemberIds, answeredByMember);
+    } else if (currentOptedIn && selfUnanswered.length > 0) {
+      const selfPicks = pickRandom(selfUnanswered, total);
+      selfPicks.forEach(qId => items.push({ type: 'self', questionId: qId }));
+    } else if (optedInMemberIds.length > 0) {
+      addFamilyItems(items, total, optedInMemberIds, answeredByMember);
+    }
+
+    if (items.length === 0) {
+      if (phase === 'pre') startSoloGame();
+      else showDoneScreen();
+      return;
+    }
+
+    if (phase === 'pre') {
+      aboutPreItems = items;
+      renderMixedAboutQuestions('pre', items);
+      const nameEl = document.getElementById('about-pre-name-display');
+      if (nameEl) nameEl.textContent = currentVisitorName;
+      showScreen('about-pre-screen');
+    } else {
+      aboutPostItems = items;
+      renderMixedAboutQuestions('post', items);
+      showScreen('about-post-screen');
+    }
+  });
 }
 
-function addFamilyItems(items, count, optedInMemberIds) {
-  // Pick random family members and random questions for each
-  // Load already-answered family questions to avoid repeats
+function addFamilyItems(items, count, optedInMemberIds, answeredByMember) {
   const allQIds = ABOUT_QUESTIONS.map(q => q.id);
+  const used = new Set(); // track "memberId-qId" to avoid duplicates in this batch
+
   for (let i = 0; i < count && optedInMemberIds.length > 0; i++) {
-    const memberId = optedInMemberIds[Math.floor(Math.random() * optedInMemberIds.length)];
-    const member = FAMILY_TREE[memberId];
-    if (!member) continue;
-    const qId = allQIds[Math.floor(Math.random() * allQIds.length)];
-    items.push({
-      type: 'family',
-      questionId: qId,
-      familyMemberId: memberId,
-      familyMemberName: member.name.split(' ')[0], // first name
-    });
+    // Try to find a member + question combo that hasn't been answered yet
+    let found = false;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const memberId = optedInMemberIds[Math.floor(Math.random() * optedInMemberIds.length)];
+      const member = FAMILY_TREE[memberId];
+      if (!member) continue;
+      const qId = allQIds[Math.floor(Math.random() * allQIds.length)];
+      const key = `${memberId}-${qId}`;
+      const alreadyAnswered = (answeredByMember[memberId] || []).includes(qId);
+      if (!alreadyAnswered && !used.has(key)) {
+        used.add(key);
+        items.push({
+          type: 'family',
+          questionId: qId,
+          familyMemberId: memberId,
+          familyMemberName: member.name.split(' ')[0],
+        });
+        found = true;
+        break;
+      }
+    }
+    if (!found) break; // couldn't find unanswered questions
   }
 }
 
@@ -3712,8 +3735,11 @@ function renderMixedAboutQuestions(phase, items) {
       card.innerHTML = `
         <div class="about-q-label">About <span class="about-q-family-name">${escapeHtml(item.familyMemberName)}</span> — Question ${i + 1} of ${items.length}</div>
         <div class="about-q-text">${escapeHtml(rephrased)}</div>
-        <p class="about-q-optional">Skip if you're not sure</p>
-        <textarea id="about-${phase}-${i}" placeholder="Your answer (or leave blank to skip)..."></textarea>
+        <div id="about-${phase}-${i}-input">
+          <textarea id="about-${phase}-${i}" placeholder="Your answer..."></textarea>
+          <button type="button" class="btn btn-secondary" style="font-size:0.8rem;padding:0.4rem 1rem;margin-top:0.3rem;" onclick="markDontKnow('${phase}', ${i})">I don't know</button>
+        </div>
+        <div id="about-${phase}-${i}-skipped" style="display:none;color:var(--white-dim);font-style:italic;padding:0.5rem 0;">Skipped — no worries!</div>
       `;
     }
     container.appendChild(card);
@@ -3751,6 +3777,14 @@ function isJunkAnswer(text) {
   // Very short with no vowels (likely gibberish)
   if (lower.length < 6 && !/[aeiou]/i.test(lower)) return true;
   return false;
+}
+
+function markDontKnow(phase, index) {
+  document.getElementById(`about-${phase}-${index}-input`).style.display = 'none';
+  document.getElementById(`about-${phase}-${index}-skipped`).style.display = 'block';
+  // Clear the textarea so it's treated as empty on submit
+  const textarea = document.getElementById(`about-${phase}-${index}`);
+  if (textarea) textarea.value = '';
 }
 
 function submitAboutAnswers(phase) {
