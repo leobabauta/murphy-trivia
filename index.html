@@ -1252,7 +1252,34 @@ select.family-select option {
 
   <button class="link-btn" onclick="showAnswerAboutFamily()">Answer Questions About a Family Member</button>
   <button class="link-btn" onclick="showMyAnswers()">Review Answers About Me</button>
+  <button class="link-btn" id="admin-link" style="display:none;" onclick="showAdminPanel()">Admin Dashboard</button>
   <button class="link-btn" onclick="logout()">Log Out</button>
+</div>
+
+<!-- ========== ADMIN DASHBOARD ========== -->
+<div id="admin-screen" class="screen">
+  <button class="link-btn" onclick="showScreen('game-select-screen')" style="align-self:flex-start;margin-bottom:1rem;">&larr; Back</button>
+  <h1 class="title" style="font-size:2rem;margin-bottom:1.5rem;">Admin Dashboard</h1>
+
+  <div class="card" style="max-width:700px;">
+    <h2>Game Activity</h2>
+    <div id="admin-game-activity"><p style="color:var(--white-dim);">Loading...</p></div>
+  </div>
+
+  <div class="card" style="max-width:700px;">
+    <h2>Answers Collected Per Person</h2>
+    <select class="family-select" id="admin-member-select" onchange="loadAdminMemberAnswers()">
+      <option value="">-- Select a family member --</option>
+    </select>
+    <div id="admin-member-answers" style="margin-top:1rem;"></div>
+  </div>
+
+  <div class="card" style="max-width:700px;">
+    <h2>Fun Facts Submitted</h2>
+    <div id="admin-funfacts"><p style="color:var(--white-dim);">Loading...</p></div>
+  </div>
+
+  <button class="link-btn" style="margin-top:1.5rem;" onclick="showScreen('game-select-screen')">&larr; Back</button>
 </div>
 
 <!-- ========== ANSWER ABOUT FAMILY MEMBER SCREEN ========== -->
@@ -4359,10 +4386,203 @@ function submitFamilyDirectAnswers() {
 }
 
 // =====================================================
+// ADMIN
+// =====================================================
+const ADMIN_EMAIL = 'leo.babauta@gmail.com';
+
+function checkAdmin() {
+  const email = (currentVisitorData && currentVisitorData.email) || '';
+  if (email === ADMIN_EMAIL) {
+    document.getElementById('admin-link').style.display = 'inline-block';
+  }
+}
+
+function showAdminPanel() {
+  showScreen('admin-screen');
+  loadAdminGameActivity();
+  loadAdminFunFacts();
+  buildAdminMemberSelect();
+}
+
+function loadAdminGameActivity() {
+  const container = document.getElementById('admin-game-activity');
+  container.innerHTML = '<p style="color:var(--white-dim);">Loading...</p>';
+
+  db.ref('users').once('value', snap => {
+    const users = snap.val() || {};
+    const rows = [];
+    Object.entries(users).forEach(([uid, u]) => {
+      if (!u.name) return;
+      const gamesPlayed = u.gamesPlayed || 0;
+      const attemptCounts = u.attemptCounts || {};
+      const marionAttempts = attemptCounts['grandma-marion'] || 0;
+      const aboutCount = u.aboutAnswers ? Object.keys(u.aboutAnswers).length : 0;
+      const optedIn = u.optedIn ? 'Yes' : (u.optedIn === false ? 'No' : '—');
+      const familyId = u.familyMemberId || '—';
+      rows.push({ name: u.name, familyId, optedIn, aboutCount, marionAttempts });
+    });
+
+    rows.sort((a, b) => b.marionAttempts - a.marionAttempts || b.aboutCount - a.aboutCount);
+
+    if (rows.length === 0) {
+      container.innerHTML = '<p style="color:var(--white-dim);">No users yet.</p>';
+      return;
+    }
+
+    container.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+        <tr style="border-bottom:1px solid var(--blue);color:var(--blue);text-align:left;">
+          <th style="padding:0.4rem;">Name</th>
+          <th style="padding:0.4rem;">Family ID</th>
+          <th style="padding:0.4rem;">Opted In</th>
+          <th style="padding:0.4rem;">Answers</th>
+          <th style="padding:0.4rem;">Marion Plays</th>
+        </tr>
+        ${rows.map(r => `
+          <tr style="border-bottom:1px solid rgba(126,184,218,0.1);">
+            <td style="padding:0.4rem;color:var(--white);">${escapeHtml(r.name)}</td>
+            <td style="padding:0.4rem;color:var(--white-dim);font-size:0.8rem;">${escapeHtml(r.familyId)}</td>
+            <td style="padding:0.4rem;color:${r.optedIn === 'Yes' ? 'var(--gold)' : 'var(--white-dim)'};">${r.optedIn}</td>
+            <td style="padding:0.4rem;color:var(--white);">${r.aboutCount}</td>
+            <td style="padding:0.4rem;color:var(--gold);font-weight:700;">${r.marionAttempts}</td>
+          </tr>
+        `).join('')}
+      </table>`;
+  });
+}
+
+function buildAdminMemberSelect() {
+  const select = document.getElementById('admin-member-select');
+  select.innerHTML = '<option value="">-- Select a family member --</option>';
+  document.getElementById('admin-member-answers').innerHTML = '';
+
+  const members = Object.entries(FAMILY_TREE)
+    .filter(([_, m]) => !m.excluded && m.gen > 0)
+    .sort((a, b) => a[1].name.localeCompare(b[1].name));
+
+  members.forEach(([id, m]) => {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = m.name + (m.spouseOf ? ' (spouse)' : '');
+    select.appendChild(opt);
+  });
+}
+
+function loadAdminMemberAnswers() {
+  const memberId = document.getElementById('admin-member-select').value;
+  const container = document.getElementById('admin-member-answers');
+  container.innerHTML = '';
+  if (!memberId) return;
+
+  const member = FAMILY_TREE[memberId];
+  const firstName = member ? member.name.split(' ')[0] : memberId;
+
+  // Load self-answers (find user with this familyMemberId)
+  db.ref('users').orderByChild('familyMemberId').equalTo(memberId).once('value', userSnap => {
+    const selfAnswers = {};
+    let selfCount = 0;
+    userSnap.forEach(child => {
+      const u = child.val();
+      if (u.aboutAnswers) {
+        Object.entries(u.aboutAnswers).forEach(([qId, data]) => {
+          const answer = typeof data === 'object' ? data.answer : data;
+          selfAnswers[qId] = { answer, source: 'Self' };
+          selfCount++;
+        });
+      }
+    });
+
+    // Load family answers about them
+    db.ref(`familyAnswers/${memberId}`).once('value', famSnap => {
+      const famData = famSnap.val() || {};
+      let famCount = 0;
+      const famRows = [];
+      Object.entries(famData).forEach(([qId, answerers]) => {
+        Object.entries(answerers).forEach(([uid, entry]) => {
+          const answer = typeof entry === 'object' ? entry.answer : entry;
+          const by = (typeof entry === 'object' && entry.answeredByName) ? entry.answeredByName : uid;
+          famRows.push({ qId: Number(qId), answer, source: by });
+          famCount++;
+        });
+      });
+
+      // Combine and display
+      const allRows = [];
+      Object.entries(selfAnswers).forEach(([qId, data]) => {
+        const q = ABOUT_QUESTIONS.find(aq => aq.id === Number(qId));
+        allRows.push({ question: q ? q.question : `Q#${qId} (retired)`, answer: data.answer, source: data.source });
+      });
+      famRows.forEach(r => {
+        const q = ABOUT_QUESTIONS.find(aq => aq.id === r.qId);
+        allRows.push({ question: q ? q.question : `Q#${r.qId} (retired)`, answer: r.answer, source: r.source });
+      });
+
+      if (allRows.length === 0) {
+        container.innerHTML = `<p style="color:var(--white-dim);">No answers collected about ${escapeHtml(firstName)} yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = `
+        <p style="color:var(--gold);font-weight:600;margin-bottom:0.8rem;">${escapeHtml(firstName)}: ${selfCount} self + ${famCount} from family = ${selfCount + famCount} total</p>
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+          <tr style="border-bottom:1px solid var(--blue);color:var(--blue);text-align:left;">
+            <th style="padding:0.4rem;">Question</th>
+            <th style="padding:0.4rem;">Answer</th>
+            <th style="padding:0.4rem;">Source</th>
+          </tr>
+          ${allRows.map(r => `
+            <tr style="border-bottom:1px solid rgba(126,184,218,0.1);">
+              <td style="padding:0.4rem;color:var(--white-dim);font-size:0.8rem;">${escapeHtml(r.question)}</td>
+              <td style="padding:0.4rem;color:var(--white);">${escapeHtml(r.answer)}</td>
+              <td style="padding:0.4rem;color:var(--gold);font-size:0.8rem;">${escapeHtml(r.source)}</td>
+            </tr>
+          `).join('')}
+        </table>`;
+    });
+  });
+}
+
+function loadAdminFunFacts() {
+  const container = document.getElementById('admin-funfacts');
+  container.innerHTML = '<p style="color:var(--white-dim);">Loading...</p>';
+
+  db.ref('funFacts').once('value', snap => {
+    const data = snap.val();
+    if (!data) {
+      container.innerHTML = '<p style="color:var(--white-dim);">No fun facts submitted yet.</p>';
+      return;
+    }
+
+    const rows = [];
+    Object.entries(data).forEach(([memberId, facts]) => {
+      const member = FAMILY_TREE[memberId];
+      const name = member ? member.name : memberId;
+      Object.values(facts).forEach(f => {
+        rows.push({ name, fact: f.fact, by: f.submittedBy || '?' });
+      });
+    });
+
+    if (rows.length === 0) {
+      container.innerHTML = '<p style="color:var(--white-dim);">No fun facts submitted yet.</p>';
+      return;
+    }
+
+    container.innerHTML = rows.map(r => `
+      <div style="border-bottom:1px solid rgba(126,184,218,0.1);padding:0.6rem 0;">
+        <strong style="color:var(--gold);">${escapeHtml(r.name)}</strong>
+        <span style="color:var(--white-dim);font-size:0.8rem;"> — submitted by ${escapeHtml(r.by)}</span>
+        <p style="color:var(--white);margin-top:0.3rem;">${escapeHtml(r.fact)}</p>
+      </div>
+    `).join('');
+  });
+}
+
+// =====================================================
 // GAME SELECTION, QUIT, LOGOUT
 // =====================================================
 function showGameSelectScreen() {
   document.getElementById('game-select-name').textContent = currentVisitorName;
+  checkAdmin();
   showScreen('game-select-screen');
 }
 
