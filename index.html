@@ -1252,7 +1252,7 @@ select.family-select option {
 
   <button class="link-btn" id="review-trivia-link" style="display:none;" onclick="showTriviaReview()">Review & Approve My Trivia Game</button>
   <button class="link-btn" onclick="showAnswerAboutFamily()">Answer Questions About a Family Member</button>
-  <button class="link-btn" onclick="showMyAnswers()">Review Answers About Me</button>
+  <button class="link-btn" id="review-answers-link" onclick="showMyAnswers()">Review Answers About Me</button>
   <button class="link-btn" id="admin-link" style="display:none;" onclick="showAdminPanel()">Admin Dashboard</button>
   <button class="link-btn" onclick="logout()">Log Out</button>
 </div>
@@ -1361,6 +1361,12 @@ select.family-select option {
   <div class="card" id="my-family-answers-card">
     <h2>What Others Said About Me</h2>
     <div id="my-family-answers-list"><p style="color:var(--white-dim);">Loading...</p></div>
+  </div>
+
+  <div class="card" id="my-game-questions-card" style="max-width:560px;display:none;">
+    <h2>My Trivia Game Questions</h2>
+    <p style="color:var(--white-dim);font-size:0.85rem;margin-bottom:1rem;">These are the questions in your trivia game. You can edit answers.</p>
+    <div id="my-game-questions-list"></div>
   </div>
 
   <div class="card" id="my-trivia-facts-card" style="max-width:560px;">
@@ -4085,6 +4091,19 @@ function submitAboutAnswers(phase) {
   }
 
   db.ref().update(updates).then(() => {
+    // Add new answers to existing games
+    items.forEach((item, i) => {
+      const textarea = document.getElementById(`about-${phase}-${i}`);
+      const answer = textarea ? textarea.value.trim() : '';
+      if (!answer || isJunkAnswer(answer)) return;
+
+      if (item.type === 'self' && currentFamilyMemberId) {
+        addNewAnswerToGame(currentFamilyMemberId, item.questionId, answer);
+      } else if (item.type === 'family') {
+        addNewAnswerToGame(item.familyMemberId, item.questionId, answer);
+      }
+    });
+
     if (phase === 'pre') {
       startSoloGame();
     } else {
@@ -4635,6 +4654,15 @@ function submitFamilyDirectAnswers() {
   }
 
   db.ref().update(updates).then(() => {
+    // Add new answers to existing games
+    answerFamilyQuestionIds.forEach(qId => {
+      const textarea = document.getElementById(`af-${qId}`);
+      const answer = textarea ? textarea.value.trim() : '';
+      if (!answer || isJunkAnswer(answer)) return;
+      const targetId = isSelf ? currentFamilyMemberId : answerFamilyTargetId;
+      if (targetId) addNewAnswerToGame(targetId, qId, answer);
+    });
+
     const successEl = document.getElementById('answer-family-success');
     if (isSelf) {
       successEl.textContent = 'Saved! Thanks for answering about yourself.';
@@ -5116,6 +5144,15 @@ function showGameSelectScreen() {
   checkAdmin();
   checkTriviaReadiness();
   loadGeneratedGameCards();
+
+  // Update review link text based on whether user has a generated game
+  const reviewLink = document.getElementById('review-answers-link');
+  if (currentFamilyMemberId) {
+    db.ref(`generatedGames/${currentFamilyMemberId}`).once('value', snap => {
+      reviewLink.textContent = snap.exists() ? 'Review My Trivia Game' : 'Review Answers About Me';
+    });
+  }
+
   showScreen('game-select-screen');
 
   // Check for ?review= URL param
@@ -5330,8 +5367,43 @@ function showMyAnswers() {
   const selfList = document.getElementById('my-self-answers-list');
   const famList = document.getElementById('my-family-answers-list');
   const factsList = document.getElementById('my-trivia-facts-list');
+  const gameQCard = document.getElementById('my-game-questions-card');
+  const gameQList = document.getElementById('my-game-questions-list');
   selfList.innerHTML = '<p style="color:var(--white-dim);">Loading...</p>';
   famList.innerHTML = '<p style="color:var(--white-dim);">Loading...</p>';
+
+  // Load generated game questions if they exist
+  if (currentFamilyMemberId) {
+    db.ref(`generatedGames/${currentFamilyMemberId}`).once('value', gameSnap => {
+      if (!gameSnap.exists()) {
+        gameQCard.style.display = 'none';
+        return;
+      }
+      const gameData = gameSnap.val();
+      const questions = gameData.questions || [];
+      gameQCard.style.display = 'block';
+      gameQList.innerHTML = questions.map((q, i) => {
+        const correctAnswer = q.choices[q.answer];
+        const wrongAnswers = q.choices.filter((_, idx) => idx !== q.answer);
+        return `<div class="my-answer-row">
+          <span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--blue);">${escapeHtml(q.category)}</span>
+          <div class="question-label" style="margin-top:0.2rem;">${escapeHtml(q.question)}</div>
+          <div style="margin-top:0.3rem;">
+            <span style="font-size:0.75rem;color:var(--white-dim);">Correct:</span>
+            <input type="text" id="game-q-${i}-answer" value="${escapeHtml(correctAnswer)}" style="margin-bottom:0.3rem;">
+          </div>
+          <div style="font-size:0.75rem;color:var(--white-dim);margin-bottom:0.2rem;">Wrong answers:</div>
+          ${wrongAnswers.map((w, wi) => `<input type="text" id="game-q-${i}-wrong-${wi}" value="${escapeHtml(w)}" style="margin-bottom:0.2rem;font-size:0.9rem;">`).join('')}
+          <div class="row-actions">
+            <button class="btn btn-secondary" style="font-size:0.85rem;padding:0.3rem 1rem;" onclick="saveGameQuestion(${i})">Save</button>
+            <span class="save-indicator" id="game-q-ind-${i}">Saved!</span>
+          </div>
+        </div>`;
+      }).join('');
+    });
+  } else {
+    gameQCard.style.display = 'none';
+  }
 
   // Show pre-generated trivia facts (editable)
   if (currentFamilyMemberId) {
@@ -5463,6 +5535,93 @@ function deleteMyAnswer(questionId) {
   if (!confirm('Delete this answer?')) return;
   db.ref(`users/${currentVisitorId}/aboutAnswers/${questionId}`).remove().then(() => {
     showMyAnswers(); // refresh
+  });
+}
+
+function addNewAnswerToGame(memberId, questionId, answer) {
+  // When a new answer comes in for someone who already has a generated game,
+  // create a trivia question and append it
+  db.ref(`generatedGames/${memberId}`).once('value', snap => {
+    if (!snap.exists()) return; // no game yet
+    const gameData = snap.val();
+    const questions = gameData.questions || [];
+    const q = ABOUT_QUESTIONS.find(aq => aq.id === questionId);
+    if (!q) return;
+
+    const member = FAMILY_TREE[memberId];
+    const firstName = member ? member.name.split(' ')[0] : gameData.name || 'they';
+    const rephrased = rephraseFamilyQuestion(q.question, firstName);
+
+    // Gather wrong answers from other family members
+    db.ref('users').once('value', userSnap => {
+      const wrongPool = [];
+      const users = userSnap.val() || {};
+      Object.values(users).forEach(u => {
+        if (u.familyMemberId === memberId) return;
+        if (u.aboutAnswers && u.aboutAnswers[questionId]) {
+          const a = u.aboutAnswers[questionId];
+          const ans = typeof a === 'object' ? a.answer : a;
+          if (ans && ans !== answer && !wrongPool.includes(ans)) wrongPool.push(ans);
+        }
+      });
+
+      // Fill remaining wrong answers with generic options
+      const genericWrongs = ["Nobody knows", "It's a mystery", "Ask them at Thanksgiving", "They'll never tell"];
+      while (wrongPool.length < 3) {
+        const g = genericWrongs[wrongPool.length];
+        if (g && !wrongPool.includes(g)) wrongPool.push(g);
+        else break;
+      }
+
+      const wrongs = wrongPool.slice(0, 3);
+      const choices = [...wrongs];
+      const answerIdx = Math.floor(Math.random() * 4);
+      choices.splice(answerIdx, 0, answer);
+
+      const newQ = {
+        category: q.category,
+        question: rephrased,
+        choices,
+        answer: answerIdx,
+        funFact: `${firstName} says: "${answer}"`
+      };
+
+      // Append to the game
+      db.ref(`generatedGames/${memberId}/questions/${questions.length}`).set(newQ);
+    });
+  });
+}
+
+function saveGameQuestion(index) {
+  const correctInput = document.getElementById(`game-q-${index}-answer`);
+  if (!correctInput) return;
+  const correctAnswer = correctInput.value.trim();
+  const wrongs = [];
+  for (let w = 0; w < 3; w++) {
+    const wrongInput = document.getElementById(`game-q-${index}-wrong-${w}`);
+    if (wrongInput) wrongs.push(wrongInput.value.trim());
+  }
+
+  // Rebuild choices with correct answer at its current position
+  db.ref(`generatedGames/${currentFamilyMemberId}/questions/${index}`).once('value', snap => {
+    const q = snap.val();
+    if (!q) return;
+    const newChoices = [];
+    let wrongIdx = 0;
+    for (let i = 0; i < 4; i++) {
+      if (i === q.answer) {
+        newChoices.push(correctAnswer);
+      } else {
+        newChoices.push(wrongs[wrongIdx++] || q.choices[i]);
+      }
+    }
+    db.ref(`generatedGames/${currentFamilyMemberId}/questions/${index}/choices`).set(newChoices).then(() => {
+      const ind = document.getElementById(`game-q-ind-${index}`);
+      if (ind) {
+        ind.classList.add('visible');
+        setTimeout(() => ind.classList.remove('visible'), 1500);
+      }
+    });
   });
 }
 
