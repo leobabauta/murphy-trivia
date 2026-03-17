@@ -1240,7 +1240,7 @@ select.family-select option {
   <p class="subtitle">Welcome back, <strong id="game-select-name" style="color:var(--gold);"></strong>!</p>
 
   <h2 style="color:var(--blue);text-transform:uppercase;letter-spacing:1.5px;font-size:1rem;margin-bottom:1rem;">Choose a Trivia Game</h2>
-  <div class="game-cards">
+  <div class="game-cards" id="game-cards-container">
     <button class="game-card" onclick="startGameFlow('grandma-marion')">
       <div class="game-card-photo">
         <img src="photos/marion-1.png" alt="Marion Murphy">
@@ -1248,7 +1248,7 @@ select.family-select option {
       <div class="game-card-name">Marion Trivia</div>
     </button>
   </div>
-  <p style="color:var(--white-dim);font-size:0.85rem;margin-top:1rem;">More trivia games coming soon as we collect answers!</p>
+  <p id="game-cards-loading-msg" style="color:var(--white-dim);font-size:0.85rem;margin-top:1rem;">More trivia games coming soon as we collect answers!</p>
 
   <button class="link-btn" onclick="showAnswerAboutFamily()">Answer Questions About a Family Member</button>
   <button class="link-btn" onclick="showMyAnswers()">Review Answers About Me</button>
@@ -1394,6 +1394,7 @@ select.family-select option {
     <div class="fancy-title" style="font-size:2.4rem;margin-bottom:0;letter-spacing:0.1em;line-height:1;" aria-label="You Don't Know Murphys">
       <span class="c-gold">Y</span><span class="c-coral filled">o</span><span class="c-white">u</span><span class="space"> </span><span class="c-blue filled">D</span><span class="c-gold">o</span><span class="c-coral filled">n</span><span class="c-white">'</span><span class="c-blue">t</span><span class="space"> </span><span class="c-gold filled">K</span><span class="c-coral">n</span><span class="c-white filled">o</span><span class="c-blue">w</span><span class="space"> </span><span class="c-gold">M</span><span class="c-coral filled">u</span><span class="c-white">r</span><span class="c-blue filled">p</span><span class="c-gold">h</span><span class="c-coral filled">y</span><span class="c-white">s</span>
     </div>
+    <h1 id="game-header-title" style="display:none;font-size:2rem;font-weight:800;color:var(--gold);margin-bottom:0;letter-spacing:0.05em;"></h1>
     <div style="display:flex;align-items:center;gap:0.8rem;">
       <span id="progress-text" onclick="presenterResetPrompt()">Q 1/10</span>
       <button class="icon-btn" id="quit-btn" style="display:none" onclick="quitGame()" title="Quit game"><svg viewBox="0 0 24 24"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></button>
@@ -1493,12 +1494,12 @@ select.family-select option {
     <span class="c-gold">G</span><span class="c-coral filled">r</span><span class="c-white">e</span><span class="c-blue filled">a</span><span class="c-gold">t</span><span class="space"> </span><span class="c-coral filled">J</span><span class="c-white">o</span><span class="c-blue filled">b</span><span class="c-gold">!</span>
   </div>
   <div class="card" style="max-width:500px;text-align:center;">
-    <h2>Grandma Marion Trivia</h2>
+    <h2 id="done-game-title">Grandma Marion Trivia</h2>
     <p id="done-score" style="font-size:1.8rem;font-weight:800;color:var(--gold);margin-bottom:1rem;"></p>
     <p id="done-score-msg" style="color:var(--white-dim);margin-bottom:1.5rem;"></p>
   </div>
   <div class="card" style="max-width:500px;">
-    <h2>High Scores — Grandma Marion</h2>
+    <h2 id="done-highscore-title">High Scores — Grandma Marion</h2>
     <div id="done-high-scores"></div>
   </div>
   <div class="card" style="max-width:500px;text-align:center;">
@@ -2575,6 +2576,8 @@ let consentedChildIds = []; // kids the player consented for
 let soloScore = 0;
 let soloCurrentQuestion = 0;
 let soloQuestionOrder = null;
+let currentGameId = 'grandma-marion';
+let currentGameQuestions = null; // null means use QUESTIONS (Marion trivia)
 let aboutPreQuestionIds = [];
 let aboutPostQuestionIds = [];
 
@@ -4052,12 +4055,16 @@ function startSoloGame() {
   soloScore = 0;
   soloCurrentQuestion = 0;
 
-  // Regenerate random grandchild questions each game
-  randomizeGrandchildQuestions();
+  const questionsSource = currentGameQuestions || QUESTIONS;
+
+  if (!currentGameQuestions) {
+    // Marion trivia — regenerate random grandchild questions each game
+    randomizeGrandchildQuestions();
+  }
 
   // Shuffle questions and limit to 25 max
   const MAX_QUESTIONS = 25;
-  soloQuestionOrder = Array.from({length: QUESTIONS.length}, (_, i) => i);
+  soloQuestionOrder = Array.from({length: questionsSource.length}, (_, i) => i);
   for (let i = soloQuestionOrder.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [soloQuestionOrder[i], soloQuestionOrder[j]] = [soloQuestionOrder[j], soloQuestionOrder[i]];
@@ -4067,6 +4074,49 @@ function startSoloGame() {
   }
 
   showScreen('game-screen');
+
+  // Update game header for member trivia vs Marion trivia
+  const headerTitle = document.getElementById('game-header-title');
+  const grandmaPhoto = document.getElementById('grandma-photo');
+  if (currentGameId !== 'grandma-marion' && headerTitle) {
+    const member = FAMILY_TREE[currentGameId];
+    const firstName = member ? member.name.split(' ')[0] : currentGameId;
+    headerTitle.textContent = firstName + ' Trivia';
+    headerTitle.style.display = 'block';
+    // Hide fancy title, show plain title
+    const fancyTitle = document.querySelector('#game-screen .game-header .fancy-title');
+    if (fancyTitle) fancyTitle.style.display = 'none';
+
+    // Show member photo statically instead of rotating grandma photos
+    if (grandmaPhoto) {
+      const img = document.getElementById('grandma-img');
+      const staticPhoto = MEMBER_PHOTOS[currentGameId];
+      if (staticPhoto) {
+        img.src = staticPhoto;
+        grandmaPhoto.classList.add('visible');
+      } else {
+        // Try Firebase userPhotos
+        db.ref(`userPhotos/${currentGameId}`).once('value', snap => {
+          const fbPhoto = snap.val();
+          if (fbPhoto) {
+            img.src = fbPhoto;
+            grandmaPhoto.classList.add('visible');
+          } else {
+            grandmaPhoto.classList.remove('visible');
+          }
+        });
+      }
+    }
+  } else {
+    // Marion trivia — restore defaults
+    if (headerTitle) headerTitle.style.display = 'none';
+    const fancyTitle = document.querySelector('#game-screen .game-header .fancy-title');
+    if (fancyTitle) fancyTitle.style.display = '';
+    if (grandmaPhoto) {
+      grandmaPhoto.classList.add('visible');
+      document.getElementById('grandma-img').src = GRANDMA_PHOTOS[0];
+    }
+  }
 
   // Hide multiplayer elements
   document.getElementById('presenter-panel').style.display = 'none';
@@ -4086,7 +4136,8 @@ function startSoloGame() {
 }
 
 function getSoloQuestion(displayIndex) {
-  return QUESTIONS[soloQuestionOrder[displayIndex]];
+  const qs = currentGameQuestions || QUESTIONS;
+  return qs[soloQuestionOrder[displayIndex]];
 }
 
 function renderSoloQuestion() {
@@ -4096,7 +4147,15 @@ function renderSoloQuestion() {
   }
 
   const q = getSoloQuestion(soloCurrentQuestion);
-  document.getElementById('progress-text').textContent = `Q ${soloCurrentQuestion + 1}/${soloQuestionOrder.length}`;
+
+  // Show progress text with game name for member trivia
+  let progressPrefix = '';
+  if (currentGameId !== 'grandma-marion') {
+    const member = FAMILY_TREE[currentGameId];
+    const firstName = member ? member.name.split(' ')[0] : currentGameId;
+    progressPrefix = firstName + ' Trivia - ';
+  }
+  document.getElementById('progress-text').textContent = `${progressPrefix}Q ${soloCurrentQuestion + 1}/${soloQuestionOrder.length}`;
   document.getElementById('progress-text').onclick = null;
   document.getElementById('q-category').textContent = q.category;
   document.getElementById('q-text').textContent = q.question;
@@ -4118,7 +4177,10 @@ function renderSoloQuestion() {
     choicesEl.appendChild(btn);
   });
 
-  advanceGrandmaPhoto();
+  // Only rotate photos for Marion trivia
+  if (currentGameId === 'grandma-marion') {
+    advanceGrandmaPhoto();
+  }
 
   const area = document.getElementById('question-area');
   area.classList.remove('slide-in');
@@ -4190,24 +4252,49 @@ function updateSoloScorebar() {
 function showDoneScreen() {
   showScreen('done-screen');
 
+  // Determine game display name
+  const gameId = currentGameId;
+  let gameName;
+  if (gameId === 'grandma-marion') {
+    gameName = 'Grandma Marion Trivia';
+  } else {
+    const member = FAMILY_TREE[gameId];
+    const firstName = member ? member.name.split(' ')[0] : gameId;
+    gameName = firstName + ' Trivia';
+  }
+
+  // Update done screen titles
+  document.getElementById('done-game-title').textContent = gameName;
+  document.getElementById('done-highscore-title').textContent = 'High Scores — ' + gameName;
+
   const totalQs = soloQuestionOrder.length;
   document.getElementById('done-score').textContent = `${soloScore} / ${totalQs}`;
 
   const pct = soloScore / totalQs;
   let msg = '';
-  if (pct === 1) msg = "Perfect score! You REALLY know Grandma!";
-  else if (pct >= 0.8) msg = "Impressive! Marion would be so proud of you.";
-  else if (pct >= 0.6) msg = "Not bad! You know Grandma pretty well.";
-  else if (pct >= 0.4) msg = "Room for improvement — but Grandma still loves you!";
-  else msg = "You DON'T know Grandma... yet! Play again to learn more.";
+  if (gameId === 'grandma-marion') {
+    if (pct === 1) msg = "Perfect score! You REALLY know Grandma!";
+    else if (pct >= 0.8) msg = "Impressive! Marion would be so proud of you.";
+    else if (pct >= 0.6) msg = "Not bad! You know Grandma pretty well.";
+    else if (pct >= 0.4) msg = "Room for improvement — but Grandma still loves you!";
+    else msg = "You DON'T know Grandma... yet! Play again to learn more.";
+  } else {
+    const member = FAMILY_TREE[gameId];
+    const firstName = member ? member.name.split(' ')[0] : gameId;
+    if (pct === 1) msg = `Perfect score! You REALLY know ${firstName}!`;
+    else if (pct >= 0.8) msg = `Impressive! You know ${firstName} well.`;
+    else if (pct >= 0.6) msg = `Not bad! You know ${firstName} pretty well.`;
+    else if (pct >= 0.4) msg = `Room for improvement — but ${firstName} still loves you!`;
+    else msg = `You don't know ${firstName}... yet! Play again to learn more.`;
+  }
   document.getElementById('done-score-msg').textContent = msg;
 
   // Save score with attempt tracking
-  const attemptRef = db.ref(`users/${currentVisitorId}/attemptCounts/grandma-marion`);
+  const attemptRef = db.ref(`users/${currentVisitorId}/attemptCounts/${gameId}`);
   attemptRef.transaction(count => (count || 0) + 1, (err, committed, snap) => {
     const attempt = snap.val() || 1;
     // Save every attempt as a separate entry
-    db.ref('highScores/grandma-marion').push({
+    db.ref(`highScores/${gameId}`).push({
       name: currentVisitorName,
       userId: currentVisitorId,
       score: soloScore,
@@ -4217,7 +4304,7 @@ function showDoneScreen() {
     });
 
     // Load and display top 10 scores
-    db.ref('highScores/grandma-marion').orderByChild('score').limitToLast(50).once('value', scoreSnap => {
+    db.ref(`highScores/${gameId}`).orderByChild('score').limitToLast(50).once('value', scoreSnap => {
       const allScores = [];
       scoreSnap.forEach(child => {
         allScores.push(child.val());
@@ -4300,6 +4387,8 @@ function skipPostGame() {
 }
 
 function playAgainSolo() {
+  currentGameId = 'grandma-marion';
+  currentGameQuestions = null;
   showGameSelectScreen();
 }
 
@@ -4742,18 +4831,125 @@ function loadAdminFunFacts() {
 function showGameSelectScreen() {
   document.getElementById('game-select-name').textContent = currentVisitorName;
   checkAdmin();
+  loadGeneratedGameCards();
   showScreen('game-select-screen');
 }
 
+function loadGeneratedGameCards() {
+  const container = document.getElementById('game-cards-container');
+  const loadingMsg = document.getElementById('game-cards-loading-msg');
+
+  // Remove any previously added dynamic cards (keep the first Marion card)
+  container.querySelectorAll('.game-card-dynamic').forEach(el => el.remove());
+
+  db.ref('generatedGames').once('value', snap => {
+    const games = snap.val();
+    if (!games) return;
+
+    let addedCount = 0;
+    const memberIds = Object.keys(games);
+
+    // Track how many photo lookups are pending
+    let pending = memberIds.length;
+
+    memberIds.forEach(memberId => {
+      const gameData = games[memberId];
+      if (!gameData || !gameData.questions || !Array.isArray(gameData.questions) || gameData.questions.length === 0) {
+        pending--;
+        if (pending === 0 && addedCount === 0) {
+          loadingMsg.textContent = 'More trivia games coming soon as we collect answers!';
+        }
+        return;
+      }
+
+      const member = FAMILY_TREE[memberId];
+      const firstName = member ? member.name.split(' ')[0] : memberId;
+
+      // Resolve photo: check MEMBER_PHOTOS first, then Firebase userPhotos
+      const staticPhoto = MEMBER_PHOTOS[memberId];
+      if (staticPhoto) {
+        appendGameCard(container, memberId, firstName, staticPhoto);
+        addedCount++;
+        pending--;
+        if (pending === 0) updateLoadingMsg(loadingMsg, addedCount);
+      } else {
+        db.ref(`userPhotos/${memberId}`).once('value', photoSnap => {
+          const fbPhoto = photoSnap.val();
+          appendGameCard(container, memberId, firstName, fbPhoto);
+          addedCount++;
+          pending--;
+          if (pending === 0) updateLoadingMsg(loadingMsg, addedCount);
+        });
+      }
+    });
+  });
+}
+
+function updateLoadingMsg(el, count) {
+  if (count > 0) {
+    el.textContent = '';
+  } else {
+    el.textContent = 'More trivia games coming soon as we collect answers!';
+  }
+}
+
+function appendGameCard(container, memberId, firstName, photoUrl) {
+  const btn = document.createElement('button');
+  btn.className = 'game-card game-card-dynamic';
+  btn.onclick = () => startGameFlow(memberId);
+
+  const photoDiv = document.createElement('div');
+  photoDiv.className = 'game-card-photo';
+  if (photoUrl) {
+    const img = document.createElement('img');
+    img.src = photoUrl;
+    img.alt = firstName;
+    photoDiv.appendChild(img);
+  } else {
+    photoDiv.style.background = 'var(--navy-light)';
+    photoDiv.style.display = 'flex';
+    photoDiv.style.alignItems = 'center';
+    photoDiv.style.justifyContent = 'center';
+    photoDiv.style.fontSize = '2rem';
+    photoDiv.style.color = 'var(--gold)';
+    photoDiv.textContent = firstName.charAt(0).toUpperCase();
+  }
+  btn.appendChild(photoDiv);
+
+  const nameDiv = document.createElement('div');
+  nameDiv.className = 'game-card-name';
+  nameDiv.textContent = firstName + ' Trivia';
+  btn.appendChild(nameDiv);
+
+  container.appendChild(btn);
+}
+
 function startGameFlow(gameId) {
-  // For now only 'grandma-marion', but future-proofed
-  startAboutPhase('pre');
+  currentGameId = gameId;
+
+  if (gameId === 'grandma-marion') {
+    currentGameQuestions = null; // use QUESTIONS
+    startAboutPhase('pre');
+  } else {
+    // Load generated game questions from Firebase
+    db.ref(`generatedGames/${gameId}/questions`).once('value', snap => {
+      const questions = snap.val();
+      if (!questions || !Array.isArray(questions) || questions.length === 0) {
+        alert('This trivia game has no questions yet. Please try again later.');
+        return;
+      }
+      currentGameQuestions = questions;
+      startAboutPhase('pre');
+    });
+  }
 }
 
 function quitGame() {
   if (!confirm('Quit this game? Your progress will be lost.')) return;
   clearInterval(timerInterval);
   document.getElementById('quit-btn').style.display = 'none';
+  currentGameId = 'grandma-marion';
+  currentGameQuestions = null;
   showGameSelectScreen();
 }
 
