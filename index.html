@@ -3451,6 +3451,19 @@ function rephraseFamilyQuestion(question, firstName) {
     .replace(/\byou\b/gi, firstName);
 }
 
+function isJunkAnswer(text) {
+  if (!text || text.length < 3) return true;
+  // All same character
+  if (new Set(text.replace(/\s/g, '')).size <= 1) return true;
+  // Common keyboard mashing patterns
+  const lower = text.toLowerCase().replace(/\s/g, '');
+  const junkPatterns = ['asdf', 'adsf', 'dsfa', 'fdsa', 'qwer', 'qwerty', 'zxcv', 'jkl', 'aaa', 'bbb', 'xxx', 'zzz', 'test', 'abc', 'abcd', '123', '1234'];
+  if (junkPatterns.includes(lower)) return true;
+  // Very short with no vowels (likely gibberish)
+  if (lower.length < 6 && !/[aeiou]/i.test(lower)) return true;
+  return false;
+}
+
 function submitAboutAnswers(phase) {
   const items = phase === 'pre' ? aboutPreItems : aboutPostItems;
   const updates = {};
@@ -3463,21 +3476,20 @@ function submitAboutAnswers(phase) {
     if (item.type === 'self') {
       if (!answer) {
         selfAllFilled = false;
-      } else {
+      } else if (!isJunkAnswer(answer)) {
         updates[`users/${currentVisitorId}/aboutAnswers/${item.questionId}`] = {
           answer,
           answeredAt: firebase.database.ServerValue.TIMESTAMP
         };
       }
-    } else if (item.type === 'family' && answer) {
-      // Save family answer under the family member's profile
+      // Junk self-answers: form passes validation but answer is silently discarded
+    } else if (item.type === 'family' && answer && !isJunkAnswer(answer)) {
       updates[`familyAnswers/${item.familyMemberId}/${item.questionId}/${currentVisitorId}`] = {
         answer,
         answeredByName: currentVisitorName,
         answeredAt: firebase.database.ServerValue.TIMESTAMP
       };
     }
-    // Family questions can be skipped — no error
   });
 
   if (!selfAllFilled) {
