@@ -1000,6 +1000,84 @@ select.family-select option {
   cursor: pointer;
   accent-color: var(--gold);
 }
+
+/* ===== MY ANSWERS SCREEN ===== */
+#my-answers-screen {
+  justify-content: flex-start;
+  padding-top: 1.5rem;
+}
+#my-answers-screen .card {
+  max-width: 600px;
+}
+.my-answer-row {
+  border-bottom: 1px solid rgba(126,184,218,0.15);
+  padding: 1rem 0;
+}
+.my-answer-row:last-child { border-bottom: none; }
+.my-answer-row .question-label {
+  font-size: 0.95rem;
+  color: var(--blue);
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+.my-answer-row .question-label.retired {
+  color: var(--white-dim);
+  font-style: italic;
+}
+.my-answer-row textarea {
+  width: 100%;
+  min-height: 60px;
+  margin-bottom: 0.4rem;
+}
+.my-answer-row .row-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.my-answer-row .save-indicator {
+  font-size: 0.8rem;
+  color: var(--gold);
+  margin-left: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.my-answer-row .save-indicator.visible { opacity: 1; }
+.family-answer-row {
+  border-bottom: 1px solid rgba(126,184,218,0.15);
+  padding: 1rem 0;
+}
+.family-answer-row:last-child { border-bottom: none; }
+.family-answer-row .answerer-name {
+  font-size: 0.85rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.2rem;
+}
+.family-answer-row .question-label {
+  font-size: 0.9rem;
+  color: var(--blue);
+  margin-bottom: 0.3rem;
+}
+.family-answer-row .answer-text {
+  font-size: 1rem;
+  color: var(--white);
+  margin-bottom: 0.5rem;
+}
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--coral);
+  color: var(--coral);
+  font-size: 0.75rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: background 0.2s;
+}
+.btn-danger:hover { background: rgba(224,85,85,0.15); }
 </style>
 </head>
 <body>
@@ -1121,7 +1199,24 @@ select.family-select option {
     <p style="color:var(--white-dim);font-size:0.85rem;margin-top:0.8rem;">More trivia games coming soon as we collect answers!</p>
   </div>
 
+  <button class="link-btn" onclick="showMyAnswers()">Review My Answers</button>
   <button class="link-btn" onclick="logout()">Log Out</button>
+</div>
+
+<!-- ========== MY ANSWERS SCREEN ========== -->
+<div id="my-answers-screen" class="screen">
+  <button class="link-btn" onclick="showScreen('game-select-screen')" style="align-self:flex-start;margin-bottom:1rem;">&larr; Back</button>
+  <h1 class="title" style="font-size:2rem;margin-bottom:1.5rem;">My Answers</h1>
+
+  <div class="card" id="my-self-answers-card">
+    <h2>My Answers About Myself</h2>
+    <div id="my-self-answers-list"><p style="color:var(--white-dim);">Loading...</p></div>
+  </div>
+
+  <div class="card" id="my-family-answers-card">
+    <h2>What Others Said About Me</h2>
+    <div id="my-family-answers-list"><p style="color:var(--white-dim);">Loading...</p></div>
+  </div>
 </div>
 
 <!-- ========== JOIN SCREEN (multiplayer mode) ========== -->
@@ -1458,27 +1553,8 @@ const QUESTIONS = [
     answer: 2,
     funFact: "She loved every one of them fiercely and unconditionally, through thick and thin."
   },
-  {
-    category: "Grandchildren",
-    question: "Who is Marion's first grandchild?",
-    choices: ["Patrick", "Ana", "A puppy named Biscuit", "Seth"],
-    answer: 3,
-    funFact: "Seth — the one who started it all. 26 more grandchildren would follow!"
-  },
-  {
-    category: "Grandchildren",
-    question: "Who is Marion's 10th grandchild?",
-    choices: ["Patrick", "Seth", "Ana", "She lost count after number 7"],
-    answer: 2,
-    funFact: "With 27 grandchildren, keeping track is a superpower — and Marion had it."
-  },
-  {
-    category: "Grandchildren",
-    question: "Who is Marion's 20th grandchild?",
-    choices: ["Ana", "By that point she just called everyone 'sweetie'", "Seth", "Patrick"],
-    answer: 3,
-    funFact: "Number 20 of 27 — and she remembered every single name and birthday!"
-  },
+  // Grandchild/great-grandchild slots — replaced dynamically by randomizeGrandchildQuestions()
+  null, null, null,
   {
     category: "Grandma Traditions",
     question: "What did Marion always give visiting grandchildren?",
@@ -1487,6 +1563,99 @@ const QUESTIONS = [
     funFact: "Always exactly 2. Not 1, not 3. The perfect grandma portion."
   }
 ];
+
+// =====================================================
+// GRANDCHILD & GREAT-GRANDCHILD DATA (birth order)
+// =====================================================
+const GRANDCHILDREN = [
+  "Seth", "Kristan", "Melissa", "Leo", "Kat", "Katie", "Heidi",
+  "Andrew", "Dominic", "Ana", "Connor", "Chris", "Danny", "Skyler",
+  "Austen", "Aja", "Joseph", "Ian", "Hannah", "Patrick", "Kimberly",
+  "Michael", "Sophie", "Myrna", "Timothy", "Matthew", "Chace"
+];
+
+const GREAT_GRANDCHILDREN = [
+  "Chelsea", "Parker", "Chloe", "Ha'ani", "Justin", "Samantha",
+  "Hailey", "Rain", "Sierra", "Maia", "Isabella", "Lennon",
+  "Ethan", "Blake", "Zahra", "Isaiah", "Noelle", "Zoey",
+  "Cordelia", "Marion", "Lucas", "London", "Soraya", "Joey Lucia",
+  "Van Ethan", "Kinsley", "Olivia Joy", "Cameron"
+];
+
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function generateOneGrandchildQuestion(list, label, totalLabel) {
+  const pos = Math.floor(Math.random() * list.length);
+  const correct = list[pos];
+
+  // Pick 3 wrong answers from nearby positions
+  const wrongPool = [];
+  for (let offset = -3; offset <= 3; offset++) {
+    if (offset === 0) continue;
+    const idx = pos + offset;
+    if (idx >= 0 && idx < list.length) wrongPool.push(list[idx]);
+  }
+  // If not enough nearby, add random ones
+  while (wrongPool.length < 3) {
+    const rand = list[Math.floor(Math.random() * list.length)];
+    if (rand !== correct && !wrongPool.includes(rand)) wrongPool.push(rand);
+  }
+
+  // Shuffle and pick 3
+  for (let i = wrongPool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [wrongPool[i], wrongPool[j]] = [wrongPool[j], wrongPool[i]];
+  }
+  const wrongs = wrongPool.slice(0, 3);
+
+  // Build choices with correct answer at random position
+  const choices = [...wrongs];
+  const answerIdx = Math.floor(Math.random() * 4);
+  choices.splice(answerIdx, 0, correct);
+
+  return {
+    category: label,
+    question: `Who is Marion's ${ordinal(pos + 1)} ${label.toLowerCase()}?`,
+    choices: choices,
+    answer: answerIdx,
+    funFact: `${correct} — number ${pos + 1} of ${list.length} ${totalLabel}!`
+  };
+}
+
+function randomizeGrandchildQuestions() {
+  // Generate 2 grandchild + 1 great-grandchild question (or mix)
+  const usedPositions = { gc: new Set(), ggc: new Set() };
+
+  function genUnique(list, label, totalLabel, usedSet) {
+    let q;
+    let attempts = 0;
+    do {
+      q = generateOneGrandchildQuestion(list, label, totalLabel);
+      attempts++;
+    } while (usedSet.has(q.question) && attempts < 20);
+    usedSet.add(q.question);
+    return q;
+  }
+
+  // Find the null slots (indices 20, 21, 22 in original array)
+  for (let i = 0; i < QUESTIONS.length; i++) {
+    if (QUESTIONS[i] === null) {
+      if (i === QUESTIONS.length - 3 || Math.random() < 0.5) {
+        // Great-grandchild question for the last null slot, or 50/50
+        QUESTIONS[i] = genUnique(GREAT_GRANDCHILDREN, "Great-Grandchildren", "great-grandchildren", usedPositions.ggc);
+      } else {
+        QUESTIONS[i] = genUnique(GRANDCHILDREN, "Grandchildren", "grandchildren", usedPositions.gc);
+      }
+    }
+  }
+}
+
+// Generate on page load
+randomizeGrandchildQuestions();
 
 // =====================================================
 // "ABOUT YOU" QUESTION BANK (53 questions)
@@ -3272,6 +3441,9 @@ function startSoloGame() {
   soloScore = 0;
   soloCurrentQuestion = 0;
 
+  // Regenerate random grandchild questions each game
+  randomizeGrandchildQuestions();
+
   // Shuffle questions
   soloQuestionOrder = Array.from({length: QUESTIONS.length}, (_, i) => i);
   for (let i = soloQuestionOrder.length - 1; i > 0; i--) {
@@ -3520,6 +3692,116 @@ function logout() {
   document.getElementById('signin-name').value = '';
   document.getElementById('signin-email').value = '';
   showScreen('signin-screen');
+}
+
+// =====================================================
+// MY ANSWERS REVIEW / EDIT
+// =====================================================
+function getQuestionText(qId) {
+  const q = ABOUT_QUESTIONS.find(q => q.id === qId);
+  return q ? q.question : null;
+}
+
+function showMyAnswers() {
+  showScreen('my-answers-screen');
+  const selfList = document.getElementById('my-self-answers-list');
+  const famList = document.getElementById('my-family-answers-list');
+  selfList.innerHTML = '<p style="color:var(--white-dim);">Loading...</p>';
+  famList.innerHTML = '<p style="color:var(--white-dim);">Loading...</p>';
+
+  // Load self answers
+  db.ref(`users/${currentVisitorId}/aboutAnswers`).once('value').then(snap => {
+    const answers = snap.val() || {};
+    const ids = Object.keys(answers).map(Number).sort((a, b) => a - b);
+    if (ids.length === 0) {
+      selfList.innerHTML = '<p style="color:var(--white-dim);">You haven\'t answered any questions yet.</p>';
+      return;
+    }
+    selfList.innerHTML = ids.map(qId => {
+      const data = answers[qId];
+      const answerText = typeof data === 'object' ? (data.answer || '') : String(data);
+      const qText = getQuestionText(qId);
+      const retired = !qText;
+      const label = retired ? 'Question no longer in use' : escapeHtml(qText);
+      const labelClass = retired ? 'question-label retired' : 'question-label';
+      return `<div class="my-answer-row">
+        <div class="${labelClass}">${label}</div>
+        ${retired
+          ? `<p style="color:var(--white-dim);font-size:0.9rem;margin-bottom:0.4rem;">${escapeHtml(answerText)}</p>`
+          : `<textarea id="my-answer-${qId}">${escapeHtml(answerText)}</textarea>`}
+        <div class="row-actions">
+          ${retired
+            ? `<button class="btn-danger" onclick="deleteMyAnswer(${qId})">Delete</button>`
+            : `<button class="btn btn-secondary" style="font-size:0.85rem;padding:0.3rem 1rem;" onclick="saveMyAnswer(${qId})">Save</button>
+               <button class="btn-danger" onclick="deleteMyAnswer(${qId})">Delete</button>
+               <span class="save-indicator" id="save-ind-${qId}">Saved!</span>`}
+        </div>
+      </div>`;
+    }).join('');
+  });
+
+  // Load family answers about me
+  if (!currentFamilyMemberId) {
+    famList.innerHTML = '<p style="color:var(--white-dim);">You are not linked to a family member profile, so no one can answer questions about you.</p>';
+    return;
+  }
+  db.ref(`familyAnswers/${currentFamilyMemberId}`).once('value').then(snap => {
+    const byQuestion = snap.val() || {};
+    const rows = [];
+    Object.keys(byQuestion).forEach(qIdStr => {
+      const qId = Number(qIdStr);
+      const answerers = byQuestion[qIdStr];
+      Object.keys(answerers).forEach(uid => {
+        if (uid === currentVisitorId) return; // skip own family answers about self
+        const entry = answerers[uid];
+        const answerText = typeof entry === 'object' ? (entry.answer || '') : String(entry);
+        const answererName = (typeof entry === 'object' && entry.answeredByName) ? entry.answeredByName : uid;
+        const qText = getQuestionText(qId);
+        const label = qText ? escapeHtml(qText) : 'Question no longer in use';
+        rows.push({ qId, uid, answererName, label, answerText });
+      });
+    });
+    if (rows.length === 0) {
+      famList.innerHTML = '<p style="color:var(--white-dim);">No one has answered questions about you yet.</p>';
+      return;
+    }
+    famList.innerHTML = rows.map(r =>
+      `<div class="family-answer-row">
+        <div class="answerer-name">${escapeHtml(r.answererName)}</div>
+        <div class="question-label">${r.label}</div>
+        <p class="answer-text">${escapeHtml(r.answerText)}</p>
+        <button class="btn-danger" onclick="deleteFamilyAnswerAboutMe(${r.qId}, '${r.uid}')">Delete</button>
+      </div>`
+    ).join('');
+  });
+}
+
+function saveMyAnswer(questionId) {
+  const textarea = document.getElementById(`my-answer-${questionId}`);
+  if (!textarea) return;
+  const newAnswer = textarea.value.trim();
+  if (!newAnswer) return;
+  db.ref(`users/${currentVisitorId}/aboutAnswers/${questionId}/answer`).set(newAnswer).then(() => {
+    const ind = document.getElementById(`save-ind-${questionId}`);
+    if (ind) {
+      ind.classList.add('visible');
+      setTimeout(() => ind.classList.remove('visible'), 1500);
+    }
+  });
+}
+
+function deleteMyAnswer(questionId) {
+  if (!confirm('Delete this answer?')) return;
+  db.ref(`users/${currentVisitorId}/aboutAnswers/${questionId}`).remove().then(() => {
+    showMyAnswers(); // refresh
+  });
+}
+
+function deleteFamilyAnswerAboutMe(questionId, answeredByUserId) {
+  if (!confirm('Delete this answer about you?')) return;
+  db.ref(`familyAnswers/${currentFamilyMemberId}/${questionId}/${answeredByUserId}`).remove().then(() => {
+    showMyAnswers(); // refresh
+  });
 }
 
 // =====================================================
