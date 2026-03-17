@@ -1483,6 +1483,7 @@ select.family-select option {
   <p class="subtitle">While it's fresh — tell us a bit more!</p>
   <div class="about-questions-container" id="about-post-questions"></div>
   <button class="btn btn-primary" id="about-post-submit" onclick="submitAboutAnswers('post')">See My Results</button>
+  <button class="link-btn" onclick="skipPostGame()">Skip to Results</button>
   <p class="error-msg" id="about-post-error" style="display:none"></p>
 </div>
 
@@ -1673,13 +1674,6 @@ const QUESTIONS = [
     choices: ["15 years", "30 years", "20 years", "Until the kids started teaching her"],
     answer: 2,
     funFact: "20 years of shaping young minds (1973–1993) — that's a LOT of finger paintings on the fridge."
-  },
-  {
-    category: "Family",
-    question: "Which of her kids gave Marion the most stress, objectively?",
-    choices: ["Tim — have you met Tim?", "Joey, and he knows what he did", "All of them! She was always there for us, no matter what.", "The first three — after that she stopped keeping track"],
-    answer: 2,
-    funFact: "She loved every one of them fiercely and unconditionally, through thick and thin."
   },
   // Grandchild/great-grandchild slots — replaced dynamically by randomizeGrandchildQuestions()
   null, null, null,
@@ -1926,7 +1920,7 @@ function generateOneGrandchildQuestion(list, label, totalLabel) {
 
   return {
     category: label,
-    question: `Who is Marion's ${ordinal(pos + 1)} ${label.toLowerCase()}?`,
+    question: `Who is Marion's ${ordinal(pos + 1)} ${label.toLowerCase().replace('children', 'child')}?`,
     choices: choices,
     answer: answerIdx,
     funFact: `${correct} — number ${pos + 1} of ${list.length} ${totalLabel}!`
@@ -4061,11 +4055,15 @@ function startSoloGame() {
   // Regenerate random grandchild questions each game
   randomizeGrandchildQuestions();
 
-  // Shuffle questions
+  // Shuffle questions and limit to 25 max
+  const MAX_QUESTIONS = 25;
   soloQuestionOrder = Array.from({length: QUESTIONS.length}, (_, i) => i);
   for (let i = soloQuestionOrder.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [soloQuestionOrder[i], soloQuestionOrder[j]] = [soloQuestionOrder[j], soloQuestionOrder[i]];
+  }
+  if (soloQuestionOrder.length > MAX_QUESTIONS) {
+    soloQuestionOrder = soloQuestionOrder.slice(0, MAX_QUESTIONS);
   }
 
   showScreen('game-screen');
@@ -4092,13 +4090,13 @@ function getSoloQuestion(displayIndex) {
 }
 
 function renderSoloQuestion() {
-  if (soloCurrentQuestion >= QUESTIONS.length) {
+  if (soloCurrentQuestion >= soloQuestionOrder.length) {
     startAboutPhase('post');
     return;
   }
 
   const q = getSoloQuestion(soloCurrentQuestion);
-  document.getElementById('progress-text').textContent = `Q ${soloCurrentQuestion + 1}/${QUESTIONS.length}`;
+  document.getElementById('progress-text').textContent = `Q ${soloCurrentQuestion + 1}/${soloQuestionOrder.length}`;
   document.getElementById('progress-text').onclick = null;
   document.getElementById('q-category').textContent = q.category;
   document.getElementById('q-text').textContent = q.question;
@@ -4165,7 +4163,7 @@ function soloSubmitAnswer(choiceIndex) {
 
   // Show next button
   const nextBtn = document.getElementById('solo-next-btn');
-  nextBtn.textContent = soloCurrentQuestion < QUESTIONS.length - 1 ? 'Next Question' : 'Continue';
+  nextBtn.textContent = soloCurrentQuestion < soloQuestionOrder.length - 1 ? 'Next Question' : 'Continue';
   nextBtn.classList.add('visible');
 }
 
@@ -4181,7 +4179,7 @@ function updateSoloScorebar() {
     <span class="sb-label">Score</span>
     <span class="sb-player sb-me">
       <span class="sb-name">${escapeHtml(currentVisitorName)}</span>
-      <span class="sb-score">${soloScore} / ${QUESTIONS.length}</span>
+      <span class="sb-score">${soloScore} / ${soloQuestionOrder.length}</span>
     </span>
   `;
 }
@@ -4192,9 +4190,10 @@ function updateSoloScorebar() {
 function showDoneScreen() {
   showScreen('done-screen');
 
-  document.getElementById('done-score').textContent = `${soloScore} / ${QUESTIONS.length}`;
+  const totalQs = soloQuestionOrder.length;
+  document.getElementById('done-score').textContent = `${soloScore} / ${totalQs}`;
 
-  const pct = soloScore / QUESTIONS.length;
+  const pct = soloScore / totalQs;
   let msg = '';
   if (pct === 1) msg = "Perfect score! You REALLY know Grandma!";
   else if (pct >= 0.8) msg = "Impressive! Marion would be so proud of you.";
@@ -4212,7 +4211,7 @@ function showDoneScreen() {
       name: currentVisitorName,
       userId: currentVisitorId,
       score: soloScore,
-      total: QUESTIONS.length,
+      total: totalQs,
       attempt: attempt,
       playedAt: firebase.database.ServerValue.TIMESTAMP
     });
@@ -4293,6 +4292,11 @@ function renderHighScores(scores) {
       <span style="font-weight:700;color:var(--gold);">${s.score} / ${s.total}</span>
     </div>`;
   }).join('');
+}
+
+function skipPostGame() {
+  db.ref(`users/${currentVisitorId}/gamesPlayed`).transaction(count => (count || 0) + 1);
+  showDoneScreen();
 }
 
 function playAgainSolo() {
