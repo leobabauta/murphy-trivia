@@ -3396,27 +3396,30 @@ function showDoneScreen() {
   else msg = "You DON'T know Grandma... yet! Play again to learn more.";
   document.getElementById('done-score-msg').textContent = msg;
 
-  // Save high score to Firebase
-  db.ref(`highScores/grandma-marion/${currentVisitorId}`).once('value', snap => {
-    const existing = snap.val();
-    if (!existing || soloScore > existing.score) {
-      db.ref(`highScores/grandma-marion/${currentVisitorId}`).set({
-        name: currentVisitorName,
-        score: soloScore,
-        total: QUESTIONS.length,
-        playedAt: firebase.database.ServerValue.TIMESTAMP
-      });
-    }
-  });
-
-  // Load and display high scores
-  db.ref('highScores/grandma-marion').orderByChild('score').limitToLast(10).once('value', snap => {
-    const scores = [];
-    snap.forEach(child => {
-      scores.push(child.val());
+  // Save score with attempt tracking
+  const attemptRef = db.ref(`users/${currentVisitorId}/attemptCounts/grandma-marion`);
+  attemptRef.transaction(count => (count || 0) + 1, (err, committed, snap) => {
+    const attempt = snap.val() || 1;
+    // Save every attempt as a separate entry
+    db.ref('highScores/grandma-marion').push({
+      name: currentVisitorName,
+      userId: currentVisitorId,
+      score: soloScore,
+      total: QUESTIONS.length,
+      attempt: attempt,
+      playedAt: firebase.database.ServerValue.TIMESTAMP
     });
-    scores.sort((a, b) => b.score - a.score);
-    renderHighScores(scores);
+
+    // Load and display top 10 scores
+    db.ref('highScores/grandma-marion').orderByChild('score').limitToLast(50).once('value', scoreSnap => {
+      const allScores = [];
+      scoreSnap.forEach(child => {
+        allScores.push(child.val());
+      });
+      // Sort descending by score, then by earliest playedAt
+      allScores.sort((a, b) => b.score - a.score || a.playedAt - b.playedAt);
+      renderHighScores(allScores.slice(0, 10));
+    });
   });
 
   db.ref(`users/${currentVisitorId}/aboutAnswers`).once('value', snap => {
@@ -3454,10 +3457,11 @@ function renderHighScores(scores) {
   }
   const medals = ['\u{1F947}', '\u{1F948}', '\u{1F949}'];
   container.innerHTML = scores.map((s, i) => {
-    const isMe = s.name === currentVisitorName;
+    const isMe = s.userId === currentVisitorId;
+    const attemptLabel = (s.attempt && s.attempt > 1) ? ` <span style="font-size:0.8rem;color:var(--white-dim);font-weight:400;">(attempt ${s.attempt})</span>` : '';
     return `<div style="display:flex;align-items:center;gap:0.8rem;padding:0.5rem 0;border-bottom:1px solid rgba(126,184,218,0.1);${isMe ? 'color:var(--gold);font-weight:700;' : 'color:var(--white);'}">
       <span style="width:2rem;text-align:center;font-size:1.1rem;">${medals[i] || (i + 1)}</span>
-      <span style="flex:1;">${escapeHtml(s.name)}</span>
+      <span style="flex:1;">${escapeHtml(s.name)}${attemptLabel}</span>
       <span style="font-weight:700;color:var(--gold);">${s.score} / ${s.total}</span>
     </div>`;
   }).join('');
