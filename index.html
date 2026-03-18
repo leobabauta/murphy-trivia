@@ -1832,7 +1832,7 @@ const BIRTH_YEARS = {
   "sierra": 1998, "maia": 1999, "isabella": 2003, "lennon": 2003,
   "ethan-c": 2004, "blake": 2004, "zahra": 2004, "isaiah": 2004,
   "noelle": 2006, "zoey-c": 2010, "cordelia": 2009, "marion-f": 2010,
-  "lucas-l": 2011, "london-f": 2012, "soraya": 2012, "joey-lucia": 2016,
+  "lucas-l": 2011, "london-f": 2012, "soraya": 2012, "joey-lucia": 2015,
   "van-ethan": 2016, "kinsley": 2020, "olivia-joy": 2021, "cameron-l": 2022,
 };
 
@@ -1858,6 +1858,7 @@ const BIRTHDAYS = {
   // Gen 2 — spouses
   "eva": [5, 12], "donna-l": [11, 3], "patrick-c": [5, 24], "krystal": [11, 9],
   "toni": [4, 2], "leland-sr": [2, 20], "adeline": [12, 12], "vanessa": [10, 18],
+  "lauren": [5, 11], "ernie": [8, 20],
   // Gen 3 — great-grandchildren
   "leland-jr": [11, 21], "haani": [3, 10], "sierra": [3, 19], "zephyr": [6, 17],
   "aura": [7, 1], "cordelia": [1, 27], "marion-f": [4, 9], "london-f": [8, 16],
@@ -2440,8 +2441,8 @@ const FAMILY_TREE = {
   // Generation 3 — Great-grandchildren (Melissa)
   "leland-jr": { name: "Parker Bettis", gen: 3, parent: "melissa", searchNames: ["parker bettis", "parker", "leland bettis", "leland brabu", "leland brabu parker bettis"] },
   "haani": { name: "Ha'ani Bettis", gen: 3, parent: "melissa", searchNames: ["haani", "ha'ani", "haani bettis"] },
-  "aura": { name: "Aura Bettis", gen: 3, parent: "melissa", searchNames: ["aura", "aura bettis"] },
-  "zephyr": { name: "Zephyr Bettis", gen: 3, parent: "melissa", searchNames: ["zephyr", "zephyr bettis"] },
+  "aura": { name: "Aura Miller", gen: 4, parent: "haani", searchNames: ["aura", "aura miller", "aura bettis"] },
+  "zephyr": { name: "Zephyr Miller", gen: 4, parent: "haani", searchNames: ["zephyr", "zephyr miller", "zephyr bettis"] },
   "rohan": { name: "Rohan Bettis", gen: 3, parent: "melissa", searchNames: ["rohan", "rohan bettis"] },
   "sierra": { name: "Sierra Bettis", gen: 3, parent: "melissa", searchNames: ["sierra", "sierra bettis", "sierra armstrong"] },
   // Generation 3 — Great-grandchildren (Chelsea)
@@ -2494,6 +2495,7 @@ const FAMILY_TREE = {
   "george": { name: "George Mullins", gen: 1, parent: null, spouseOf: "colleen", searchNames: ["george", "george mullins"] },
   "randy": { name: "Randy Smith", gen: 1, parent: null, spouseOf: "erin", searchNames: ["randy", "randy smith", "randall smith"] },
   "robert-w": { name: "Robert Wescom", gen: 1, parent: null, spouseOf: "shannon", searchNames: ["robert wescom", "robert", "bob wescom"] },
+  "ernie": { name: "Ernie Matson", gen: 1, parent: null, spouseOf: "maureen", searchNames: ["ernie", "ernie matson"] },
   "kathleen": { name: "Kathleen Iuchy", gen: 1, parent: null, spouseOf: "tim", searchNames: ["kathleen", "kathleen iuchy"] },
   "john-g": { name: "John Grensback", gen: 1, parent: null, spouseOf: "megan", searchNames: ["john grensback", "john"] },
   "margie": { name: "Margie Teteo", gen: 1, parent: null, spouseOf: "joey-sr", searchNames: ["margie", "margie teteo"] },
@@ -2507,7 +2509,8 @@ const FAMILY_TREE = {
   "adeline": { name: "Adeline Arriola", gen: 2, parent: null, spouseOf: "dominic", searchNames: ["adeline", "adeline arriola"] },
   "david-w": { name: "David Weingarten", gen: 2, parent: null, spouseOf: "kat", searchNames: ["david", "david weingarten"] },
   "julius": { name: "Julius Darby", gen: 2, parent: null, spouseOf: "heidi", searchNames: ["julius", "julius darby"], excluded: true },
-  "vanessa": { name: "Vanessa Hall", gen: 2, parent: null, spouseOf: "danny", searchNames: ["vanessa", "vanessa hall"] },
+  "vanessa": { name: "Vanessa Hall", gen: 2, parent: null, spouseOf: "danny", searchNames: ["vanessa", "vanessa hall", "vanessa lombardi"] },
+  "lauren": { name: "Lauren Lombardi", gen: 2, parent: null, spouseOf: "chris-l", searchNames: ["lauren", "lauren lombardi"] },
   "ald": { name: "Ald Matias", gen: 2, parent: null, spouseOf: "connor", searchNames: ["ald", "ald matias"] },
   "cjay": { name: "C Jay Diego", gen: 2, parent: null, spouseOf: "kimberly", searchNames: ["c jay", "c jay diego", "cjay"] },
   "ashley": { name: "Ashley Garrido", gen: 2, parent: null, spouseOf: "michael-m", searchNames: ["ashley", "ashley garrido"] },
