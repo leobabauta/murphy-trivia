@@ -5072,7 +5072,8 @@ function sendTriviaReadyEmail(memberId, memberName, email) {
   const reviewUrl = `${window.location.origin}${window.location.pathname}?review=${memberId}`;
 
   // Try EmailJS first
-  if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID) {
+  initEmailJS();
+  if (emailjsReady && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID) {
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
       to_email: email,
       to_name: memberName,
@@ -5113,7 +5114,8 @@ function autoSendTriviaEmail(memberId) {
     if (snap.exists()) return; // already sent
 
     // Only auto-send if EmailJS is configured
-    if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID) {
+    initEmailJS();
+  if (emailjsReady && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID) {
       const reviewUrl = `${window.location.origin}${window.location.pathname}?review=${memberId}`;
       emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
         to_email: email,
@@ -5139,10 +5141,20 @@ const EMAILJS_PUBLIC_KEY = 'eY8ExKqddNvXdW9kj';
 const EMAILJS_SERVICE_ID = 'service_28ujxj9';
 const EMAILJS_TEMPLATE_ID = 'template_647fecg';
 
-// Initialize EmailJS
-if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY) {
-  emailjs.init(EMAILJS_PUBLIC_KEY);
+// Initialize EmailJS (delayed to ensure SDK is loaded)
+let emailjsReady = false;
+function initEmailJS() {
+  if (emailjsReady) return;
+  try {
+    if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY) {
+      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+      emailjsReady = true;
+    }
+  } catch(e) { console.error('EmailJS init error:', e); }
 }
+// Try immediately and also on load
+initEmailJS();
+window.addEventListener('load', initEmailJS);
 
 function checkAdmin() {
   const email = (currentVisitorData && currentVisitorData.email) || '';
