@@ -1,4 +1,4 @@
-# About You — Question Bank (53 Questions)
+# About You — Question Bank (62 Questions)
 
 These are the questions family members will be asked about themselves. Answers are free-text and will eventually be used to generate trivia games about each person.
 
@@ -70,3 +70,18 @@ These are the questions family members will be asked about themselves. Answers a
 51. What game (board game, video game, card game) do you love?
 52. What's your go-to karaoke song?
 53. What's a movie you've watched more than any other?
+
+## More Favorites (9 questions)
+54. What's your favorite ice cream flavor?
+55. What's your favorite comedy TV show?
+56. What's your favorite drama TV show?
+57. What's your favorite song to bop to in the car?
+58. Who is your favorite U.S. president of all time?
+59. Who is your favorite actor?
+60. Who is your favorite musical artist?
+61. What's your favorite album?
+62. Who is your favorite author?
+
+## Auto-Generated (not asked, derived from data)
+- Astrological sign (from birthday)
+- U.S. President at time of birth (from birth year)
