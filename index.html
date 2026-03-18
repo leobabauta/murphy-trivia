@@ -1050,7 +1050,17 @@ select.family-select option {
 /* ===== MY ANSWERS SCREEN ===== */
 #my-answers-screen {
   justify-content: flex-start;
-  padding-top: 1.5rem;
+  padding-top: 3.5rem;
+}
+#my-answers-screen .sticky-back {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 0.8rem 2rem;
+  background: var(--navy-dark);
+  border-bottom: 1px solid rgba(126,184,218,0.2);
+  z-index: 50;
 }
 #my-answers-screen .card {
   max-width: 600px;
@@ -1135,12 +1145,10 @@ select.family-select option {
 <!-- ========== DECORATIVE SHAPES ========== -->
 <div class="decorations" aria-hidden="true">
   <!-- X shapes -->
-  <div class="deco deco-x" style="--c:var(--gold);--sz:28px;top:4%;left:7%"></div>
   <div class="deco deco-x" style="--c:var(--blue);--sz:20px;top:8%;right:18%"></div>
   <div class="deco deco-x" style="--c:var(--white);--sz:16px;top:38%;left:3%"></div>
   <div class="deco deco-x" style="--c:var(--gold);--sz:24px;bottom:12%;right:6%"></div>
   <div class="deco deco-x" style="--c:var(--blue);--sz:18px;bottom:28%;left:8%"></div>
-  <div class="deco deco-x" style="--c:var(--coral);--sz:22px;bottom:8%;right:30%"></div>
   <div class="deco deco-x" style="--c:var(--coral);--sz:16px;top:22%;right:5%"></div>
   <!-- O shapes -->
   <div class="deco deco-o" style="--c:var(--blue);--sz:26px;top:6%;left:16%"></div>
@@ -1337,8 +1345,8 @@ select.family-select option {
 
 <!-- ========== MY ANSWERS SCREEN ========== -->
 <div id="my-answers-screen" class="screen">
-  <button class="link-btn" onclick="showScreen('game-select-screen')" style="align-self:flex-start;margin-bottom:1rem;">&larr; Back</button>
-  <h1 class="title" style="font-size:2rem;margin-bottom:1.5rem;">My Answers</h1>
+  <div class="sticky-back"><button class="link-btn" onclick="showScreen('game-select-screen')" style="margin:0;">&larr; Back</button></div>
+  <h1 class="title" style="font-size:2rem;margin-bottom:1.5rem;" id="my-answers-title">My Answers</h1>
 
   <div class="card" style="max-width:560px;text-align:center;">
     <h2>My Photo</h2>
@@ -5364,11 +5372,14 @@ function loadMyPhoto() {
 function showMyAnswers() {
   loadMyPhoto();
   showScreen('my-answers-screen');
+  const selfCard = document.getElementById('my-self-answers-card');
   const selfList = document.getElementById('my-self-answers-list');
   const famList = document.getElementById('my-family-answers-list');
   const factsList = document.getElementById('my-trivia-facts-list');
+  const factsCard = document.getElementById('my-trivia-facts-card');
   const gameQCard = document.getElementById('my-game-questions-card');
   const gameQList = document.getElementById('my-game-questions-list');
+  const titleEl = document.getElementById('my-answers-title');
   selfList.innerHTML = '<p style="color:var(--white-dim);">Loading...</p>';
   famList.innerHTML = '<p style="color:var(--white-dim);">Loading...</p>';
 
@@ -5376,16 +5387,25 @@ function showMyAnswers() {
   if (currentFamilyMemberId) {
     db.ref(`generatedGames/${currentFamilyMemberId}`).once('value', gameSnap => {
       if (!gameSnap.exists()) {
+        // No game yet — show self answers and facts
         gameQCard.style.display = 'none';
+        selfCard.style.display = 'block';
+        factsCard.style.display = 'block';
+        titleEl.textContent = 'My Answers';
         return;
       }
+      // Has a game — show game questions, hide self answers and facts
       const gameData = gameSnap.val();
       const questions = gameData.questions || [];
       gameQCard.style.display = 'block';
+      selfCard.style.display = 'none';
+      factsCard.style.display = 'none';
+      titleEl.textContent = 'My Trivia Game';
       gameQList.innerHTML = questions.map((q, i) => {
+        if (!q) return '';
         const correctAnswer = q.choices[q.answer];
         const wrongAnswers = q.choices.filter((_, idx) => idx !== q.answer);
-        return `<div class="my-answer-row">
+        return `<div class="my-answer-row" id="game-q-row-${i}">
           <span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--blue);">${escapeHtml(q.category)}</span>
           <div class="question-label" style="margin-top:0.2rem;">${escapeHtml(q.question)}</div>
           <div style="margin-top:0.3rem;">
@@ -5396,13 +5416,17 @@ function showMyAnswers() {
           ${wrongAnswers.map((w, wi) => `<input type="text" id="game-q-${i}-wrong-${wi}" value="${escapeHtml(w)}" style="margin-bottom:0.2rem;font-size:0.9rem;">`).join('')}
           <div class="row-actions">
             <button class="btn btn-secondary" style="font-size:0.85rem;padding:0.3rem 1rem;" onclick="saveGameQuestion(${i})">Save</button>
+            <button class="btn-danger" onclick="deleteGameQuestion(${i})">Delete</button>
             <span class="save-indicator" id="game-q-ind-${i}">Saved!</span>
           </div>
         </div>`;
-      }).join('');
+      }).filter(Boolean).join('');
     });
   } else {
     gameQCard.style.display = 'none';
+    selfCard.style.display = 'block';
+    factsCard.style.display = 'block';
+    titleEl.textContent = 'My Answers';
   }
 
   // Show pre-generated trivia facts (editable)
@@ -5588,6 +5612,18 @@ function addNewAnswerToGame(memberId, questionId, answer) {
 
       // Append to the game
       db.ref(`generatedGames/${memberId}/questions/${questions.length}`).set(newQ);
+    });
+  });
+}
+
+function deleteGameQuestion(index) {
+  if (!confirm('Delete this question from your trivia game?')) return;
+  // Remove the question and reindex
+  db.ref(`generatedGames/${currentFamilyMemberId}/questions`).once('value', snap => {
+    const questions = snap.val() || [];
+    questions.splice(index, 1);
+    db.ref(`generatedGames/${currentFamilyMemberId}/questions`).set(questions).then(() => {
+      showMyAnswers(); // refresh
     });
   });
 }
